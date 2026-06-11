@@ -6,6 +6,7 @@ import { PrismaClient } from "../src/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import bcrypt from "bcryptjs";
 import { evaluarLote, UMBRALES_POR_DEFECTO } from "../src/domain/vencimiento";
+import { consultarDocumento } from "../src/services/decolecta.service";
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
@@ -66,25 +67,52 @@ async function main() {
   const operador = byEmail("operador@farmainvex.pe");
   const receptores = ["Químico Farmacéutico", "Supervisor Sanitario", "Operador de Almacén"];
 
-  // Clientes (datos de ejemplo de la API Decolecta / documentos públicos)
-  const CLIENTES = [
-    { tipoDocumento: "RUC", numeroDocumento: "20601030013", nombre: "REXTIE S.A.C.", direccion: "AV. JOSE GALVEZ BARRENECHEA 566 INT. 101, SAN ISIDRO", estado: "ACTIVO", condicion: "HABIDO", distrito: "SAN ISIDRO", provincia: "LIMA", departamento: "LIMA", origenDatos: "API" },
-    { tipoDocumento: "RUC", numeroDocumento: "20100070970", nombre: "SUPERMERCADOS PERUANOS S.A.", direccion: "AV. PASEO DE LA REPUBLICA, LIMA", estado: "ACTIVO", condicion: "HABIDO", distrito: "LIMA", provincia: "LIMA", departamento: "LIMA", origenDatos: "API" },
-    { tipoDocumento: "DNI", numeroDocumento: "46027897", nombre: "DELGADO HUAMANI ROXANA KARINA", origenDatos: "API" },
-    { tipoDocumento: "DNI", numeroDocumento: "10000001", nombre: "Cliente Mostrador", origenDatos: "MANUAL" },
-  ];
-  const clientes = await Promise.all(
-    CLIENTES.map((c) => prisma.cliente.create({ data: c as never })),
-  );
+  // Clientes y proveedores: datos REALES traídos de la API Decolecta (NO hardcodeados).
+  // Solo se fijan los números de documento; nombre/dirección los provee la API.
+  // Si un documento no se encuentra (o no hay token), cae a MANUAL con un nombre genérico.
+  const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+  const datosDoc = async (tipo: "RUC" | "DNI", numero: string, fallback: string) => {
+    await sleep(350); // evita el rate limit de la API (consultas secuenciales espaciadas)
+    const r = await consultarDocumento(tipo, numero);
+    if (r.ok) {
+      const d = r.datos;
+      return {
+        tipoDocumento: tipo,
+        numeroDocumento: numero,
+        nombre: d.nombre,
+        direccion: d.direccion ?? null,
+        estado: d.estado ?? null,
+        condicion: d.condicion ?? null,
+        distrito: d.distrito ?? null,
+        provincia: d.provincia ?? null,
+        departamento: d.departamento ?? null,
+        origenDatos: "API",
+      };
+    }
+    return { tipoDocumento: tipo, numeroDocumento: numero, nombre: fallback, origenDatos: "MANUAL" };
+  };
 
-  // Proveedores (datos de ejemplo de la API Decolecta / documentos públicos)
-  const PROVEEDORES = [
-    { tipoDocumento: "RUC", numeroDocumento: "20100070970", nombre: "DISTRIBUIDORA FARMA S.A.", direccion: "AV. INDUSTRIAL 1000, LIMA", estado: "ACTIVO", condicion: "HABIDO", distrito: "LIMA", provincia: "LIMA", departamento: "LIMA", origenDatos: "API" },
-    { tipoDocumento: "RUC", numeroDocumento: "20512345678", nombre: "LABORATORIOS MEDIFARMA S.A.", direccion: "AV. LOS FRUTALES 200, ATE", estado: "ACTIVO", condicion: "HABIDO", distrito: "ATE", provincia: "LIMA", departamento: "LIMA", origenDatos: "API" },
-    { tipoDocumento: "RUC", numeroDocumento: "20603129456", nombre: "DROGUERIA ANDINA E.I.R.L.", direccion: "JR. COMERCIO 450, AREQUIPA", estado: "ACTIVO", condicion: "HABIDO", distrito: "AREQUIPA", provincia: "AREQUIPA", departamento: "AREQUIPA", origenDatos: "API" },
-    { tipoDocumento: "RUC", numeroDocumento: "20481122334", nombre: "IMPORTACIONES SALUD PERU S.A.C.", origenDatos: "MANUAL" },
+  const DOCS_CLIENTES: ["RUC" | "DNI", string, string][] = [
+    ["DNI", "46027897", "Cliente persona 1"],
+    ["DNI", "09342176", "Cliente persona 2"],
+    ["RUC", "20517182673", "Cliente institucional"],
+    ["RUC", "20100070970", "Cliente corporativo"],
   ];
-  const proveedores = await Promise.all(PROVEEDORES.map((p) => prisma.proveedor.create({ data: p as never })));
+  const clientes = [];
+  for (const [t, n, f] of DOCS_CLIENTES) {
+    clientes.push(await prisma.cliente.create({ data: (await datosDoc(t, n, f)) as never }));
+  }
+
+  const DOCS_PROVEEDORES: ["RUC" | "DNI", string, string][] = [
+    ["RUC", "20601030013", "Proveedor 1"],
+    ["RUC", "20100128056", "Proveedor 2"],
+    ["RUC", "20100047218", "Proveedor 3"],
+    ["RUC", "20418108151", "Proveedor 4"],
+  ];
+  const proveedores = [];
+  for (const [t, n, f] of DOCS_PROVEEDORES) {
+    proveedores.push(await prisma.proveedor.create({ data: (await datosDoc(t, n, f)) as never }));
+  }
 
   // Medicamentos
   const MEDS = [

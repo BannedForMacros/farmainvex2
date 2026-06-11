@@ -5,7 +5,6 @@ import { prisma } from "@/lib/prisma";
 import { fechaCorta, fechaHora, moneda } from "@/lib/format";
 import { SEMAFORO } from "@/domain/vencimiento";
 import {
-  ETIQUETA_ESTADO_LOTE,
   ETIQUETA_SEVERIDAD,
   ETIQUETA_ESTADO_INCIDENCIA,
   ETIQUETA_TIPO_MOVIMIENTO,
@@ -500,27 +499,52 @@ async function construirDatos(
         include: { lote: { include: { medicamento: true } }, proveedor: true },
         orderBy: { fecha: "desc" },
       });
-      return {
-        tipo,
-        titulo: "Compras (entradas)",
-        columnas: [
-          { header: "Fecha", key: "fecha", width: 18 },
-          { header: "Proveedor", key: "proveedor", width: 28 },
-          { header: "Documento proveedor", key: "doc", width: 18 },
-          { header: "Medicamento", key: "medicamento", width: 26 },
-          { header: "Lote", key: "lote", width: 14 },
-          { header: "Cantidad", key: "cantidad", width: 10 },
-          { header: "Documento", key: "documento", width: 18 },
-        ],
-        filas: datos.map((m) => ({
+      const filasCompra: Record<string, string | number>[] = datos.map((m) => {
+        const costo = Number(m.lote.costoUnitario);
+        return {
           fecha: fechaHora(m.fecha),
           proveedor: m.proveedor?.nombre ?? "—",
           doc: m.proveedor ? `${m.proveedor.tipoDocumento} ${m.proveedor.numeroDocumento}` : "—",
           medicamento: m.lote.medicamento.nombreComercial,
           lote: m.lote.codigo,
           cantidad: m.cantidad,
+          costo: moneda(costo),
+          valor: moneda(m.cantidad * costo),
+          vence: fechaCorta(m.lote.fechaVencimiento),
           documento: m.documentoRef ?? "—",
-        })),
+        };
+      });
+      const totalCompra = datos.reduce((s, m) => s + m.cantidad * Number(m.lote.costoUnitario), 0);
+      if (datos.length > 0) {
+        filasCompra.push({
+          fecha: "",
+          proveedor: "",
+          doc: "",
+          medicamento: "",
+          lote: "",
+          cantidad: "",
+          costo: "TOTAL",
+          valor: moneda(totalCompra),
+          vence: "",
+          documento: "",
+        });
+      }
+      return {
+        tipo,
+        titulo: "Compras (entradas)",
+        columnas: [
+          { header: "Fecha", key: "fecha", width: 18 },
+          { header: "Proveedor", key: "proveedor", width: 26 },
+          { header: "Doc. proveedor", key: "doc", width: 16 },
+          { header: "Medicamento", key: "medicamento", width: 24 },
+          { header: "Lote", key: "lote", width: 12 },
+          { header: "Cantidad", key: "cantidad", width: 10 },
+          { header: "Costo unit.", key: "costo", width: 14 },
+          { header: "Valor", key: "valor", width: 16 },
+          { header: "Vence", key: "vence", width: 14 },
+          { header: "Documento", key: "documento", width: 16 },
+        ],
+        filas: filasCompra,
       };
     }
 

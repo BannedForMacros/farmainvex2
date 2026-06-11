@@ -67,11 +67,19 @@ export function RegistrarMovimientoGlobal({
     setMotivo(MOTIVOS[nuevo][0]); // sugiere el motivo más común del nuevo tipo
   };
 
+  // Al cambiar el resultado de la acción, limpia la cantidad (campo controlado)
+  // ajustando el estado en render — no dentro del efecto — para evitar renders
+  // en cascada. Los efectos externos (toast + reset del DOM) van en el efecto.
+  const [estadoProcesado, setEstadoProcesado] = useState(estado);
+  if (estado !== estadoProcesado) {
+    setEstadoProcesado(estado);
+    if (estado.ok) setCantidad("");
+  }
+
   useEffect(() => {
     if (estado.ok) {
       toast.success("Movimiento registrado");
       formRef.current?.reset();
-      setCantidad("");
     } else if (estado.error) {
       toast.error(estado.error);
     }

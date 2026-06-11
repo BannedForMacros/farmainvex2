@@ -1,18 +1,21 @@
 import { prisma } from "@/lib/prisma";
 import type { EntidadLite } from "@/lib/documento-entidad";
 
-/** Lista de proveedores (opcionalmente filtrada por nombre o documento). */
+/** Lista de proveedores activos (opcionalmente filtrada por nombre o documento). */
 export async function listarProveedores(busqueda?: string) {
   const q = busqueda?.trim();
   return prisma.proveedor.findMany({
-    where: q
-      ? {
-          OR: [
-            { nombre: { contains: q, mode: "insensitive" } },
-            { numeroDocumento: { contains: q } },
-          ],
-        }
-      : undefined,
+    where: {
+      activo: true,
+      ...(q
+        ? {
+            OR: [
+              { nombre: { contains: q, mode: "insensitive" } },
+              { numeroDocumento: { contains: q } },
+            ],
+          }
+        : {}),
+    },
     orderBy: { nombre: "asc" },
   });
 }

@@ -12,7 +12,7 @@ const lineaCompraSchema = z.object({
   numeroLote: z.string().trim().min(1),
   fechaFabricacion: z.string().min(1),
   fechaVencimiento: z.string().min(1),
-  cantidad: z.coerce.number().int().min(0),
+  cantidad: z.coerce.number().int().positive("La cantidad debe ser mayor a 0"),
   costoUnitario: z.coerce.number().min(0).default(0),
   proveedorId: z.string().optional(),
   documentoRef: z.string().trim().max(60).optional(),

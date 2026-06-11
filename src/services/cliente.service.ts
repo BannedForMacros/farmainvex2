@@ -11,14 +11,17 @@ export interface ClienteLite {
 export async function listarClientes(busqueda?: string) {
   const q = busqueda?.trim();
   return prisma.cliente.findMany({
-    where: q
-      ? {
-          OR: [
-            { nombre: { contains: q, mode: "insensitive" } },
-            { numeroDocumento: { contains: q } },
-          ],
-        }
-      : undefined,
+    where: {
+      activo: true,
+      ...(q
+        ? {
+            OR: [
+              { nombre: { contains: q, mode: "insensitive" } },
+              { numeroDocumento: { contains: q } },
+            ],
+          }
+        : {}),
+    },
     orderBy: { nombre: "asc" },
   });
 }

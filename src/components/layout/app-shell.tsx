@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Menu,
   BellRing,
@@ -57,12 +57,11 @@ interface AppShellProps {
 export function AppShell({ nav, nombre, rol, alertasSinLeer, children }: AppShellProps) {
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
-  const [abierto, setAbierto] = useState(false);
-
-  // Abierto por defecto en escritorio, cerrado en móvil.
-  useEffect(() => {
-    setAbierto(window.matchMedia("(min-width: 1024px)").matches);
-  }, []);
+  // Abierto por defecto en escritorio, cerrado en móvil. Se lee en el
+  // inicializador (perezoso) para no disparar setState dentro de un efecto.
+  const [abierto, setAbierto] = useState(
+    () => typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches,
+  );
 
   const activa = (href: string) => pathname === href || pathname.startsWith(href + "/");
   const cerrarEnMovil = () => {

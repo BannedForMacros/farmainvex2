@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { Pill, Boxes, BellRing, ShieldAlert, CircleCheck, Coins } from "lucide-react";
 import {
   obtenerKpis,
