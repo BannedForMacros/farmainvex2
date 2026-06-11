@@ -32,7 +32,7 @@ export default async function NuevaSalidaPage() {
         <h1 className="text-2xl font-bold">Registrar salida</h1>
         <p className="text-sm text-muted-foreground">
           Elige el medicamento y su lote (FEFO). Una salida puede incluir varios ítems, cada uno
-          con su propio documento. Usa 👁 para ver los lotes disponibles.
+          con su propio documento. Usa el ícono de ojo para ver los lotes disponibles.
         </p>
       </div>
 
