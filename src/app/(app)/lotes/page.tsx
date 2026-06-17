@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
-import { SEMAFORO } from "@/domain/vencimiento";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { EstadoBadge } from "@/components/estado-badge";
 
 export const metadata: Metadata = { title: "Lotes" };
 
@@ -41,23 +40,18 @@ export default async function LotesPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {lotes.map((lote) => {
-                    const sem = SEMAFORO[lote.estadoVencimiento];
-                    return (
-                      <tr key={lote.id} className="border-b border-border/60 hover:bg-muted/40">
-                        <td className="p-3 font-mono text-xs">{lote.codigo}</td>
-                        <td className="p-3">{lote.numeroLote}</td>
-                        <td className="p-3 font-medium">{lote.medicamento.nombreComercial}</td>
-                        <td className="p-3">{lote.cantidad}</td>
-                        <td className="p-3">{lote.fechaVencimiento.toLocaleDateString("es-PE")}</td>
-                        <td className="p-3">
-                          <Badge tono={sem.tono}>
-                            {sem.emoji} {sem.etiqueta}
-                          </Badge>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {lotes.map((lote) => (
+                    <tr key={lote.id} className="border-b border-border/60 hover:bg-muted/40">
+                      <td className="p-3 font-mono text-xs">{lote.codigo}</td>
+                      <td className="p-3">{lote.numeroLote}</td>
+                      <td className="p-3 font-medium">{lote.medicamento.nombreComercial}</td>
+                      <td className="p-3">{lote.cantidad}</td>
+                      <td className="p-3">{lote.fechaVencimiento.toLocaleDateString("es-PE")}</td>
+                      <td className="p-3">
+                        <EstadoBadge estado={lote.estadoVencimiento} />
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>

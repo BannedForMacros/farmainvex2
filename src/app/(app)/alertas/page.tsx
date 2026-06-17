@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
-import { BellRing } from "lucide-react";
+import { BellRing, CircleCheck } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
@@ -32,8 +32,8 @@ export default async function AlertasPage() {
       {alertas.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center gap-3 py-16 text-center">
-            <BellRing className="size-8 text-fx-teal" />
-            <p className="font-semibold">Sin alertas pendientes 🟢</p>
+            <CircleCheck className="size-8 text-success" />
+            <p className="font-semibold">Sin alertas pendientes</p>
             <p className="text-sm text-muted-foreground">
               Todo bajo control. Las nuevas alertas aparecerán aquí.
             </p>

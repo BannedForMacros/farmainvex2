@@ -45,23 +45,18 @@ export default async function VencimientosPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {lotes.map((lote) => {
-                    const sem = SEMAFORO[lote.estadoVencimiento];
-                    return (
-                      <tr key={lote.id} className="border-b border-border/60 hover:bg-muted/40">
-                        <td className="p-3 font-mono text-xs">{lote.codigo}</td>
-                        <td className="p-3">{lote.medicamento.nombreComercial}</td>
-                        <td className="p-3 text-muted-foreground">{lote.medicamento.laboratorio}</td>
-                        <td className="p-3">{lote.fechaVencimiento.toLocaleDateString("es-PE")}</td>
-                        <td className="p-3 font-medium">{lote.diasRestantes ?? "—"}</td>
-                        <td className="p-3">
-                          <Badge tono={sem.tono}>
-                            {sem.emoji} {sem.etiqueta}
-                          </Badge>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {lotes.map((lote) => (
+                    <tr key={lote.id} className="border-b border-border/60 hover:bg-muted/40">
+                      <td className="p-3 font-mono text-xs">{lote.codigo}</td>
+                      <td className="p-3">{lote.medicamento.nombreComercial}</td>
+                      <td className="p-3 text-muted-foreground">{lote.medicamento.laboratorio}</td>
+                      <td className="p-3">{lote.fechaVencimiento.toLocaleDateString("es-PE")}</td>
+                      <td className="p-3 font-medium">{lote.diasRestantes ?? "—"}</td>
+                      <td className="p-3">
+                        <EstadoBadge estado={lote.estadoVencimiento} />
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
