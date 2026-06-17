@@ -37,10 +37,13 @@ export interface ContextoLote {
   observado: boolean; // el supervisor marcó observaciones sobre el lote
 }
 
-const ESTADO_LOTE_POR_VENCIMIENTO: Record<EstadoVencimiento, "VIGENTE" | "PROXIMO_VENCER" | "VENCIDO"> = {
+// Mapeo del estado del lote cuando aún NO ha vencido (el caso vencido se
+// resuelve antes, en la Regla 2). Un lote crítico pero vigente sigue siendo
+// "próximo a vencer", no "vencido".
+const ESTADO_LOTE_POR_VENCIMIENTO: Record<EstadoVencimiento, "VIGENTE" | "PROXIMO_VENCER"> = {
   VIGENTE: "VIGENTE",
   PREVENTIVA: "PROXIMO_VENCER",
-  CRITICO: "VENCIDO", // se sobreescribe abajo si aún no venció
+  CRITICO: "PROXIMO_VENCER",
 };
 
 /**
