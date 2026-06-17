@@ -3,12 +3,39 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { BellRing, Moon, Sun, LogOut, Menu, X } from "lucide-react";
+import {
+  BellRing,
+  Moon,
+  Sun,
+  LogOut,
+  Menu,
+  X,
+  LayoutDashboard,
+  Pill,
+  Boxes,
+  CalendarClock,
+  ShieldCheck,
+  FileBarChart,
+  Settings,
+  type LucideIcon,
+} from "lucide-react";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { cerrarSesion } from "@/app/actions/auth";
-import type { ItemNav } from "@/lib/nav";
+import type { ItemNav, IconoNav } from "@/lib/nav";
+
+// Resuelve la clave de icono (serializable) al componente de Lucide en cliente.
+const ICONOS: Record<IconoNav, LucideIcon> = {
+  panel: LayoutDashboard,
+  medicamentos: Pill,
+  lotes: Boxes,
+  vencimientos: CalendarClock,
+  alertas: BellRing,
+  supervision: ShieldCheck,
+  reportes: FileBarChart,
+  admin: Settings,
+};
 
 interface TopbarProps {
   nav: ItemNav[];
@@ -40,7 +67,7 @@ export function Topbar({ nav, nombre, rol, alertasSinLeer }: TopbarProps) {
         {/* Navegación horizontal (escritorio) */}
         <nav className="ml-2 hidden flex-1 items-center gap-1 lg:flex">
           {nav.map((item) => {
-            const Icono = item.icono;
+            const Icono = ICONOS[item.icono];
             return (
               <Link
                 key={item.href}
@@ -117,7 +144,7 @@ export function Topbar({ nav, nombre, rol, alertasSinLeer }: TopbarProps) {
       {abierto && (
         <nav className="grid gap-1 border-t border-border px-4 py-3 lg:hidden">
           {nav.map((item) => {
-            const Icono = item.icono;
+            const Icono = ICONOS[item.icono];
             return (
               <Link
                 key={item.href}
