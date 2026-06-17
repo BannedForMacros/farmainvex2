@@ -52,6 +52,9 @@ async function main() {
       { nombre: "Operador de Almacén", email: "operador@farmainvex.pe", passwordHash, rol: "OPERADOR", establecimientoId: central.id },
     ],
   });
+  const farmaceutico = await prisma.usuario.findUnique({
+    where: { email: "farmaceutico@farmainvex.pe" },
+  });
 
   // Medicamentos
   const meds = await Promise.all(
@@ -76,7 +79,7 @@ async function main() {
   for (const def of definicionLotes) {
     const fechaVencimiento = enDias(def.dias);
     const ev = evaluarLote(fechaVencimiento, UMBRALES_POR_DEFECTO);
-    await prisma.lote.create({
+    const lote = await prisma.lote.create({
       data: {
         codigo: `FI-LOT-${String(n++).padStart(4, "0")}`,
         numeroLote: def.numero,
@@ -88,6 +91,17 @@ async function main() {
         diasRestantes: ev.dias,
         estadoVencimiento: ev.estado,
         estado: ev.vencido ? "VENCIDO" : ev.estado === "PREVENTIVA" || ev.estado === "CRITICO" ? "PROXIMO_VENCER" : "VIGENTE",
+      },
+    });
+
+    // Movimiento de ENTRADA (ingreso del lote al inventario — trazabilidad).
+    await prisma.movimientoFarmaceutico.create({
+      data: {
+        loteId: lote.id,
+        tipo: "ENTRADA",
+        cantidad: def.cantidad,
+        motivo: "Registro inicial de lote en almacén",
+        usuarioId: farmaceutico?.id,
       },
     });
   }

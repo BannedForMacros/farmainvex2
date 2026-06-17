@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { Eye } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent } from "@/components/ui/card";
 import { EstadoBadge } from "@/components/estado-badge";
@@ -37,6 +39,7 @@ export default async function LotesPage() {
                     <th className="p-3 font-medium">Cantidad</th>
                     <th className="p-3 font-medium">Vence</th>
                     <th className="p-3 font-medium">Estado</th>
+                    <th className="p-3 text-right font-medium">Detalle</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -49,6 +52,16 @@ export default async function LotesPage() {
                       <td className="p-3">{lote.fechaVencimiento.toLocaleDateString("es-PE")}</td>
                       <td className="p-3">
                         <EstadoBadge estado={lote.estadoVencimiento} />
+                      </td>
+                      <td className="p-3 text-right">
+                        <Link
+                          href={`/lotes/${lote.id}`}
+                          className="inline-grid size-8 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-fx-blue"
+                          aria-label={`Ver detalle del lote ${lote.codigo}`}
+                          title="Ver detalle"
+                        >
+                          <Eye className="size-4" />
+                        </Link>
                       </td>
                     </tr>
                   ))}
