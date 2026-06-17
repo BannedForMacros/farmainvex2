@@ -14,6 +14,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: "jwt" },
   pages: { signIn: "/login" },
   trustHost: true,
+  // Nombre de cookie propio: evita colisión con otros proyectos en localhost
+  // (goalvend/LogiRevers usan el nombre por defecto authjs.session-token).
+  cookies: {
+    sessionToken: {
+      name: "farmainvex.session-token",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+      },
+    },
+  },
   providers: [
     Credentials({
       credentials: {
