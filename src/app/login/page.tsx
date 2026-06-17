@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { CircleAlert, TriangleAlert, CircleCheck } from "lucide-react";
 import { auth } from "@/auth";
 import { LoginForm } from "./login-form";
 
@@ -28,10 +29,16 @@ export default async function LoginPage() {
             establecimientos farmacéuticos.
           </p>
         </div>
-        <div className="flex gap-6 text-sm text-white/70">
-          <span>🔴 Riesgo crítico</span>
-          <span>🟡 Alerta preventiva</span>
-          <span>🟢 Producto vigente</span>
+        <div className="flex gap-6 text-sm text-white/80">
+          <span className="flex items-center gap-1.5">
+            <CircleAlert className="size-4" /> Riesgo crítico
+          </span>
+          <span className="flex items-center gap-1.5">
+            <TriangleAlert className="size-4" /> Alerta preventiva
+          </span>
+          <span className="flex items-center gap-1.5">
+            <CircleCheck className="size-4" /> Producto vigente
+          </span>
         </div>
       </div>
 
