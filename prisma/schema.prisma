@@ -1,0 +1,198 @@
+// FarmaInvex — Modelo de datos (PostgreSQL)
+// Sistema de trazabilidad de medicamentos, control de lotes y monitoreo de vencimientos.
+// Obra original e independiente.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ======================= Enums =======================
+
+enum Rol {
+  ADMIN
+  SUPERVISOR
+  FARMACEUTICO
+  OPERADOR
+}
+
+enum TipoEstablecimiento {
+  FARMACIA
+  BOTICA
+  CENTRO_DISTRIBUCION
+  CLINICA
+  ALMACEN_MEDICO
+}
+
+enum EstadoLote {
+  VIGENTE
+  PROXIMO_VENCER
+  VENCIDO
+  OBSERVADO
+  RETIRADO
+}
+
+enum EstadoVencimiento {
+  VIGENTE // 🟢
+  PREVENTIVA // 🟡
+  CRITICO // 🔴
+}
+
+enum TipoMovimiento {
+  ENTRADA
+  SALIDA
+  TRASLADO
+  AJUSTE
+  BAJA
+}
+
+enum TipoAlerta {
+  PROXIMO_VENCER
+  LOTE_OBSERVADO
+  RIESGO_ALMACENAMIENTO
+  INCIDENCIA_SANITARIA
+  PRODUCTO_VENCIDO
+}
+
+enum Severidad {
+  INFO
+  PREVENTIVA
+  CRITICA
+}
+
+enum EstadoIncidencia {
+  ABIERTA
+  EN_SEGUIMIENTO
+  EN_VALIDACION
+  RESUELTA
+  CERRADA
+}
+
+// ======================= Catálogos =======================
+
+model Usuario {
+  id                String          @id @default(cuid())
+  nombre            String
+  email             String          @unique
+  passwordHash      String
+  rol               Rol             @default(OPERADOR)
+  establecimiento   Establecimiento? @relation(fields: [establecimientoId], references: [id])
+  establecimientoId String?
+  activo            Boolean         @default(true)
+  creadoEn          DateTime        @default(now())
+  movimientos       MovimientoFarmaceutico[]
+  incidencias       Incidencia[]
+
+  @@index([rol])
+}
+
+model Establecimiento {
+  id        String              @id @default(cuid())
+  nombre    String
+  tipo      TipoEstablecimiento
+  direccion String?
+  usuarios  Usuario[]
+  lotes     Lote[]
+}
+
+model Medicamento {
+  id              String   @id @default(cuid())
+  codigo          String   @unique // Código del medicamento
+  nombreComercial String
+  laboratorio     String
+  principioActivo String?
+  presentacion    String?
+  creadoEn        DateTime @default(now())
+  lotes           Lote[]
+
+  @@index([laboratorio])
+}
+
+// ======================= Núcleo: lotes y trazabilidad =======================
+
+model Lote {
+  id                String      @id @default(cuid())
+  codigo            String      @unique // autogenerado: FI-LOT-####
+  numeroLote        String // número de lote del fabricante
+  medicamento       Medicamento @relation(fields: [medicamentoId], references: [id])
+  medicamentoId     String
+  establecimiento   Establecimiento? @relation(fields: [establecimientoId], references: [id])
+  establecimientoId String?
+  fechaFabricacion  DateTime
+  fechaVencimiento  DateTime
+  cantidad          Int         @default(0)
+  estado            EstadoLote  @default(VIGENTE)
+  estadoVencimiento EstadoVencimiento @default(VIGENTE) // recalculado por el motor de reglas
+  diasRestantes     Int? // cache del cálculo (Vencimiento − Hoy)
+  observado         Boolean     @default(false)
+  creadoEn          DateTime    @default(now())
+  actualizadoEn     DateTime    @updatedAt
+  movimientos       MovimientoFarmaceutico[]
+  alertas           Alerta[]
+  incidencias       Incidencia[]
+
+  @@index([estadoVencimiento])
+  @@index([fechaVencimiento])
+  @@index([medicamentoId])
+}
+
+// Historial de movimientos farmacéuticos (trazabilidad — sección V.1).
+model MovimientoFarmaceutico {
+  id        String         @id @default(cuid())
+  lote      Lote           @relation(fields: [loteId], references: [id], onDelete: Cascade)
+  loteId    String
+  tipo      TipoMovimiento
+  cantidad  Int
+  motivo    String?
+  usuario   Usuario?       @relation(fields: [usuarioId], references: [id])
+  usuarioId String?
+  fecha     DateTime       @default(now())
+
+  @@index([loteId, fecha])
+}
+
+// ======================= Alertas e incidencias sanitarias =======================
+
+model Alerta {
+  id        String     @id @default(cuid())
+  tipo      TipoAlerta
+  severidad Severidad
+  mensaje   String
+  lote      Lote?      @relation(fields: [loteId], references: [id], onDelete: SetNull)
+  loteId    String?
+  leida     Boolean    @default(false)
+  resuelta  Boolean    @default(false)
+  creadoEn  DateTime   @default(now())
+
+  @@index([leida, resuelta])
+}
+
+model Incidencia {
+  id             String           @id @default(cuid())
+  codigo         String           @unique // FI-INC-####
+  titulo         String
+  descripcion    String?
+  severidad      Severidad        @default(PREVENTIVA)
+  estado         EstadoIncidencia @default(ABIERTA)
+  evidencias     String[] // URLs de imágenes subidas
+  lote           Lote?            @relation(fields: [loteId], references: [id], onDelete: SetNull)
+  loteId         String?
+  reportadoPor   Usuario?         @relation(fields: [reportadoPorId], references: [id])
+  reportadoPorId String?
+  creadoEn       DateTime         @default(now())
+  actualizadoEn  DateTime         @updatedAt
+
+  @@index([estado, severidad])
+}
+
+// ======================= Configuración (umbrales editables por ADMIN) =======================
+
+model ConfigRegla {
+  clave       String  @id // ej. "DIAS_ALERTA_PREVENTIVA"
+  valor       String
+  descripcion String?
+}

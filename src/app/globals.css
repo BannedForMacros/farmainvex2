@@ -1,0 +1,144 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ============================================================
+   FarmaInvex — sistema de diseño (identidad propia)
+   Paleta extraída del logo: azul marino → azul → teal sanitario.
+   ============================================================ */
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* Marca FarmaInvex */
+  --color-fx-navy: var(--fx-navy);
+  --color-fx-blue: var(--fx-blue);
+  --color-fx-cyan: var(--fx-cyan);
+  --color-fx-teal: var(--fx-teal);
+
+  /* Semáforo sanitario */
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-danger: var(--danger);
+  --color-danger-foreground: var(--danger-foreground);
+
+  --font-sans: var(--font-fx-sans);
+  --font-mono: var(--font-fx-mono);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+  --radius: 0.75rem;
+
+  /* Marca (logo) */
+  --fx-navy: #002878;
+  --fx-blue: #0064b4;
+  --fx-cyan: #008cdc;
+  --fx-teal: #00a08c;
+  --fx-gradient: linear-gradient(135deg, #00a08c 0%, #0064b4 50%, #002878 100%);
+
+  /* Superficies (modo claro) */
+  --background: #f4f7fb;
+  --foreground: #0b1437;
+  --surface: #ffffff;
+  --card: #ffffff;
+  --card-foreground: #0b1437;
+  --popover: #ffffff;
+  --popover-foreground: #0b1437;
+
+  --primary: #002878;
+  --primary-foreground: #f4f7fb;
+  --secondary: #e6eef9;
+  --secondary-foreground: #002878;
+  --muted: #eef2f8;
+  --muted-foreground: #5a6486;
+  --accent: #e0f3f0;
+  --accent-foreground: #006856;
+
+  --border: #dde3f0;
+  --input: #dde3f0;
+  --ring: #0064b4;
+
+  /* Semáforo */
+  --success: #18b981;
+  --success-foreground: #04321f;
+  --warning: #f5a623;
+  --warning-foreground: #3d2700;
+  --danger: #e5304b;
+  --danger-foreground: #ffffff;
+}
+
+.dark {
+  --background: #0a1024;
+  --foreground: #e7ecf6;
+  --surface: #111a33;
+  --card: #111a33;
+  --card-foreground: #e7ecf6;
+  --popover: #111a33;
+  --popover-foreground: #e7ecf6;
+
+  --primary: #4f93e0;
+  --primary-foreground: #0a1024;
+  --secondary: #1a2547;
+  --secondary-foreground: #e7ecf6;
+  --muted: #1a2547;
+  --muted-foreground: #9aa6c4;
+  --accent: #15332e;
+  --accent-foreground: #4fd1b5;
+
+  --border: #233055;
+  --input: #233055;
+  --ring: #4f93e0;
+
+  --success: #2bd396;
+  --success-foreground: #04321f;
+  --warning: #f7b84b;
+  --warning-foreground: #3d2700;
+  --danger: #f15a70;
+  --danger-foreground: #1a0307;
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+  }
+}
+
+/* Utilidad de marca para encabezados y acentos */
+.fx-gradient-text {
+  background: var(--fx-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.fx-gradient-bg {
+  background: var(--fx-gradient);
+}
