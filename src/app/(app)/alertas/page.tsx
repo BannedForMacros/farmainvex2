@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { BellRing, CircleCheck } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { AlertaAcciones } from "./alerta-acciones";
 
 export const metadata: Metadata = { title: "Alertas sanitarias" };
 
@@ -42,18 +43,24 @@ export default async function AlertasPage() {
       ) : (
         <div className="space-y-3">
           {alertas.map((a) => (
-            <Card key={a.id}>
+            <Card key={a.id} className={a.leida ? "opacity-70" : ""}>
               <CardContent className="flex items-center justify-between gap-4 p-4">
                 <div className="flex items-center gap-3">
-                  <BellRing className="size-5 text-muted-foreground" />
+                  <BellRing
+                    className={a.leida ? "size-5 text-muted-foreground" : "size-5 text-fx-blue"}
+                  />
                   <div>
                     <p className="text-sm font-medium">{a.mensaje}</p>
                     <p className="text-xs text-muted-foreground">
                       {a.creadoEn.toLocaleString("es-PE")}
+                      {a.leida && " · leída"}
                     </p>
                   </div>
                 </div>
-                <Badge tono={TONO[a.severidad] ?? "primary"}>{a.severidad}</Badge>
+                <div className="flex items-center gap-2">
+                  <Badge tono={TONO[a.severidad] ?? "primary"}>{a.severidad}</Badge>
+                  <AlertaAcciones id={a.id} leida={a.leida} />
+                </div>
               </CardContent>
             </Card>
           ))}

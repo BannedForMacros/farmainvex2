@@ -1,6 +1,11 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { Plus, Pencil } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent } from "@/components/ui/card";
+import { buttonVariants } from "@/components/ui/button";
+import { BotonEliminar } from "@/components/boton-eliminar";
+import { eliminarMedicamento } from "./actions";
 
 export const metadata: Metadata = { title: "Medicamentos" };
 
@@ -12,18 +17,23 @@ export default async function MedicamentosPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Medicamentos</h1>
-        <p className="text-sm text-muted-foreground">
-          Catálogo de productos farmacéuticos registrados.
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold">Medicamentos</h1>
+          <p className="text-sm text-muted-foreground">
+            Catálogo de productos farmacéuticos registrados.
+          </p>
+        </div>
+        <Link href="/medicamentos/nuevo" className={buttonVariants({ variant: "primary" })}>
+          <Plus className="size-4" /> Nuevo medicamento
+        </Link>
       </div>
 
       <Card>
         <CardContent className="p-0">
           {medicamentos.length === 0 ? (
             <p className="py-16 text-center text-sm text-muted-foreground">
-              Aún no hay medicamentos. Ejecuta el seed o regístralos.
+              Aún no hay medicamentos. Crea el primero con “Nuevo medicamento”.
             </p>
           ) : (
             <div className="overflow-x-auto">
@@ -35,6 +45,7 @@ export default async function MedicamentosPage() {
                     <th className="p-3 font-medium">Laboratorio</th>
                     <th className="p-3 font-medium">Presentación</th>
                     <th className="p-3 font-medium">Lotes</th>
+                    <th className="p-3 text-right font-medium">Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -45,6 +56,23 @@ export default async function MedicamentosPage() {
                       <td className="p-3 text-muted-foreground">{m.laboratorio}</td>
                       <td className="p-3 text-muted-foreground">{m.presentacion ?? "—"}</td>
                       <td className="p-3">{m._count.lotes}</td>
+                      <td className="p-3">
+                        <div className="flex items-center justify-end gap-1">
+                          <Link
+                            href={`/medicamentos/${m.id}/editar`}
+                            className="inline-grid size-8 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-fx-blue"
+                            aria-label={`Editar ${m.nombreComercial}`}
+                            title="Editar"
+                          >
+                            <Pencil className="size-4" />
+                          </Link>
+                          <BotonEliminar
+                            accion={eliminarMedicamento}
+                            id={m.id}
+                            descripcion={`el medicamento "${m.nombreComercial}"`}
+                          />
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
