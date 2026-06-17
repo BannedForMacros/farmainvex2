@@ -56,14 +56,14 @@ export function clasificarVencimiento(
   return "VIGENTE";
 }
 
-/** Metadatos de presentación del semáforo (color del logo + emoji). */
+/** Metadatos de presentación del semáforo (etiqueta + color del logo + tono). */
 export const SEMAFORO: Record<
   EstadoVencimiento,
-  { etiqueta: string; emoji: string; color: string; tono: "danger" | "warning" | "success" }
+  { etiqueta: string; color: string; tono: "danger" | "warning" | "success" }
 > = {
-  CRITICO: { etiqueta: "Riesgo crítico", emoji: "🔴", color: "#E5304B", tono: "danger" },
-  PREVENTIVA: { etiqueta: "Alerta preventiva", emoji: "🟡", color: "#F5A623", tono: "warning" },
-  VIGENTE: { etiqueta: "Producto vigente", emoji: "🟢", color: "#18B981", tono: "success" },
+  CRITICO: { etiqueta: "Riesgo crítico", color: "#E5304B", tono: "danger" },
+  PREVENTIVA: { etiqueta: "Alerta preventiva", color: "#F5A623", tono: "warning" },
+  VIGENTE: { etiqueta: "Producto vigente", color: "#18B981", tono: "success" },
 };
 
 /** Resultado consolidado del cálculo de un lote. */

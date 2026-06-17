@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
-import { SEMAFORO } from "@/domain/vencimiento";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { EstadoBadge } from "@/components/estado-badge";
 import { RecalcularBoton } from "@/components/dashboard/recalcular-boton";
 
 export const metadata: Metadata = { title: "Monitoreo de vencimientos" };
@@ -20,7 +19,7 @@ export default async function VencimientosPage() {
         <div>
           <h1 className="text-2xl font-bold">Monitoreo de vencimientos</h1>
           <p className="text-sm text-muted-foreground">
-            Días restantes = fecha de vencimiento − fecha actual. 🔴 crítico · 🟡 preventivo · 🟢 vigente.
+            Días restantes = fecha de vencimiento − fecha actual.
           </p>
         </div>
         <RecalcularBoton />
