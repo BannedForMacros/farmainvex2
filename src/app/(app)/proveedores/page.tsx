@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Plus, Pencil, Search, ShieldCheck } from "lucide-react";
+import { Plus, Eye, Pencil, Search, ShieldCheck } from "lucide-react";
 import { listarProveedores } from "@/services/proveedor.service";
 import { ETIQUETA_TIPO_DOCUMENTO } from "@/lib/enums";
 import { Card, CardContent } from "@/components/ui/card";
@@ -89,6 +89,14 @@ export default async function ProveedoresPage({
                       </td>
                       <td className="p-3">
                         <div className="flex items-center justify-end gap-1">
+                          <Link
+                            href={`/proveedores/${p.id}`}
+                            className="inline-grid size-8 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-fx-blue"
+                            aria-label={`Ver ${p.nombre}`}
+                            title="Ver detalle"
+                          >
+                            <Eye className="size-4" />
+                          </Link>
                           <Link
                             href={`/proveedores/${p.id}/editar`}
                             className="inline-grid size-8 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-fx-blue"
