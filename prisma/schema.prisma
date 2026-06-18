@@ -47,6 +47,7 @@ enum TipoMovimiento {
   SALIDA
   VENTA
   TRASLADO
+  // AJUSTE: reservado para corrección manual de inventario (aún sin flujo en la UI).
   AJUSTE
   BAJA
 }
@@ -86,15 +87,15 @@ enum EstadoIncidencia {
 // ======================= Catálogos =======================
 
 model Usuario {
-  id                String          @id @default(cuid())
+  id                String                   @id @default(cuid())
   nombre            String
-  email             String          @unique
+  email             String                   @unique
   passwordHash      String
-  rol               Rol             @default(OPERADOR)
-  establecimiento   Establecimiento? @relation(fields: [establecimientoId], references: [id])
+  rol               Rol                      @default(OPERADOR)
+  establecimiento   Establecimiento?         @relation(fields: [establecimientoId], references: [id])
   establecimientoId String?
-  activo            Boolean         @default(true)
-  creadoEn          DateTime        @default(now())
+  activo            Boolean                  @default(true)
+  creadoEn          DateTime                 @default(now())
   movimientos       MovimientoFarmaceutico[]
   incidencias       Incidencia[]
 
@@ -126,23 +127,23 @@ model Medicamento {
 // ======================= Núcleo: lotes y trazabilidad =======================
 
 model Lote {
-  id                String      @id @default(cuid())
-  codigo            String      @unique // autogenerado: FI-LOT-####
+  id                String                   @id @default(cuid())
+  codigo            String                   @unique // autogenerado: FI-LOT-####
   numeroLote        String // número de lote del fabricante
-  medicamento       Medicamento @relation(fields: [medicamentoId], references: [id])
+  medicamento       Medicamento              @relation(fields: [medicamentoId], references: [id])
   medicamentoId     String
-  establecimiento   Establecimiento? @relation(fields: [establecimientoId], references: [id])
+  establecimiento   Establecimiento?         @relation(fields: [establecimientoId], references: [id])
   establecimientoId String?
   fechaFabricacion  DateTime
   fechaVencimiento  DateTime
-  cantidad          Int         @default(0)
-  costoUnitario     Decimal     @default(0) @db.Decimal(12, 2) // costo de adquisición por unidad (valorización)
-  estado            EstadoLote  @default(VIGENTE)
-  estadoVencimiento EstadoVencimiento @default(VIGENTE) // recalculado por el motor de reglas
+  cantidad          Int                      @default(0)
+  costoUnitario     Decimal                  @default(0) @db.Decimal(12, 2) // costo de adquisición por unidad (valorización)
+  estado            EstadoLote               @default(VIGENTE)
+  estadoVencimiento EstadoVencimiento        @default(VIGENTE) // recalculado por el motor de reglas
   diasRestantes     Int? // cache del cálculo (Vencimiento − Hoy)
-  observado         Boolean     @default(false)
-  creadoEn          DateTime    @default(now())
-  actualizadoEn     DateTime    @updatedAt
+  observado         Boolean                  @default(false)
+  creadoEn          DateTime                 @default(now())
+  actualizadoEn     DateTime                 @updatedAt
   movimientos       MovimientoFarmaceutico[]
   alertas           Alerta[]
   incidencias       Incidencia[]
@@ -154,22 +155,22 @@ model Lote {
 
 // Historial de movimientos farmacéuticos (trazabilidad — sección V.1).
 model MovimientoFarmaceutico {
-  id        String         @id @default(cuid())
-  lote      Lote           @relation(fields: [loteId], references: [id], onDelete: Cascade)
-  loteId    String
-  tipo      TipoMovimiento
-  cantidad  Int
+  id           String         @id @default(cuid())
+  lote         Lote           @relation(fields: [loteId], references: [id], onDelete: Cascade)
+  loteId       String
+  tipo         TipoMovimiento
+  cantidad     Int
   motivo       String? // motivo/categoría del movimiento (dispensación, vencimiento, traslado…)
   destino      String? // establecimiento o área a donde van las unidades
   documentoRef String? // N.º de guía de remisión / acta de baja
   recibidoPor  String? // responsable que recibe en el destino (cadena de custodia)
-  cliente   Cliente?       @relation(fields: [clienteId], references: [id], onDelete: SetNull) // solo en VENTA
-  clienteId String?
-  proveedor   Proveedor?   @relation(fields: [proveedorId], references: [id], onDelete: SetNull) // solo en ENTRADA
-  proveedorId String?
-  usuario   Usuario?       @relation(fields: [usuarioId], references: [id])
-  usuarioId String?
-  fecha     DateTime       @default(now()) // fecha real del movimiento (editable al registrar)
+  cliente      Cliente?       @relation(fields: [clienteId], references: [id], onDelete: SetNull) // solo en VENTA
+  clienteId    String?
+  proveedor    Proveedor?     @relation(fields: [proveedorId], references: [id], onDelete: SetNull) // solo en ENTRADA
+  proveedorId  String?
+  usuario      Usuario?       @relation(fields: [usuarioId], references: [id])
+  usuarioId    String?
+  fecha        DateTime       @default(now()) // fecha real del movimiento (editable al registrar)
 
   @@index([loteId, fecha])
 }
@@ -213,9 +214,9 @@ model Incidencia {
 // Cliente de venta. Los datos de origen API (Decolecta RUC/DNI) son oficiales y
 // NO se editan; solo los clientes MANUAL admiten edición del nombre.
 model Cliente {
-  id              String        @id @default(cuid())
+  id              String                   @id @default(cuid())
   tipoDocumento   TipoDocumento
-  numeroDocumento String        @unique
+  numeroDocumento String                   @unique
   nombre          String // razón social (RUC) o nombre completo (DNI)
   direccion       String?
   estado          String? // ACTIVO (RUC)
@@ -223,9 +224,9 @@ model Cliente {
   distrito        String?
   provincia       String?
   departamento    String?
-  origenDatos     OrigenDatos   @default(MANUAL)
-  activo          Boolean       @default(true)
-  creadoEn        DateTime      @default(now())
+  origenDatos     OrigenDatos              @default(MANUAL)
+  activo          Boolean                  @default(true)
+  creadoEn        DateTime                 @default(now())
   movimientos     MovimientoFarmaceutico[]
 
   @@index([nombre])
@@ -233,9 +234,9 @@ model Cliente {
 
 // Proveedor de entradas/compras. Mismo patrón que Cliente: datos API no editables.
 model Proveedor {
-  id              String        @id @default(cuid())
+  id              String                   @id @default(cuid())
   tipoDocumento   TipoDocumento
-  numeroDocumento String        @unique
+  numeroDocumento String                   @unique
   nombre          String
   direccion       String?
   estado          String?
@@ -243,9 +244,9 @@ model Proveedor {
   distrito        String?
   provincia       String?
   departamento    String?
-  origenDatos     OrigenDatos   @default(MANUAL)
-  activo          Boolean       @default(true)
-  creadoEn        DateTime      @default(now())
+  origenDatos     OrigenDatos              @default(MANUAL)
+  activo          Boolean                  @default(true)
+  creadoEn        DateTime                 @default(now())
   movimientos     MovimientoFarmaceutico[]
 
   @@index([nombre])
