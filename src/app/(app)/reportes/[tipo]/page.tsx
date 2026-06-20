@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, FileText, FileSpreadsheet, Filter, X } from "lucide-react";
+import { ArrowLeft, FileText, FileSpreadsheet, Filter, X, CalendarRange } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -112,9 +112,14 @@ export default async function ReporteDetallePage({ params, searchParams }: Props
       {/* Tabla */}
       <Card>
         <CardContent className="p-0">
-          <div className="flex items-center justify-between border-b px-5 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b px-5 py-3">
             <p className="text-sm font-semibold">Detalle</p>
-            <p className="text-sm text-muted-foreground">{datos.filas.length} registro(s)</p>
+            <div className="flex items-center gap-3">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-fx-blue">
+                <CalendarRange className="size-3.5" /> {datos.periodo}
+              </span>
+              <span className="text-sm text-muted-foreground">{datos.filas.length} registro(s)</span>
+            </div>
           </div>
           {datos.filas.length === 0 ? (
             <p className="px-5 py-10 text-center text-sm text-muted-foreground">

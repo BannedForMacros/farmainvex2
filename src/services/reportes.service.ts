@@ -75,8 +75,22 @@ export const REPORTES: { tipo: TipoReporte; titulo: string; descripcion: string 
 export interface DatosReporte {
   tipo: TipoReporte;
   titulo: string;
+  /** Rango de fechas aplicado, en texto legible para el usuario final. */
+  periodo: string;
   columnas: { header: string; key: string; width?: number }[];
   filas: Record<string, string | number>[];
+}
+
+/**
+ * Describe el rango de fechas de forma legible para el usuario final.
+ * Nunca devuelve "null": si no hay filtro, indica que abarca todo.
+ */
+export function describirPeriodo(filtro: FiltroReporte): string {
+  const { desde, hasta } = filtro;
+  if (desde && hasta) return `Del ${fechaCorta(desde)} al ${fechaCorta(hasta)}`;
+  if (desde) return `Desde el ${fechaCorta(desde)}`;
+  if (hasta) return `Hasta el ${fechaCorta(hasta)}`;
+  return "Todos los registros";
 }
 
 export function esTipoReporteValido(tipo: string | null): tipo is TipoReporte {
@@ -87,7 +101,14 @@ export async function obtenerDatosReporte(
   tipo: TipoReporte,
   filtro: FiltroReporte = {},
 ): Promise<DatosReporte> {
-  const fecha = rangoFecha(filtro);
+  const base = await construirDatos(tipo, rangoFecha(filtro));
+  return { ...base, periodo: describirPeriodo(filtro) };
+}
+
+async function construirDatos(
+  tipo: TipoReporte,
+  fecha: ReturnType<typeof rangoFecha>,
+): Promise<Omit<DatosReporte, "periodo">> {
   switch (tipo) {
     case "medicamentos": {
       const datos = await prisma.medicamento.findMany({
@@ -342,12 +363,16 @@ export function generarPDF(datos: DatosReporte): ArrayBuffer {
   doc.setFontSize(13);
   doc.setTextColor(20, 20, 40);
   doc.text(datos.titulo, 14, 26);
+  doc.setFontSize(10);
+  doc.setTextColor(0, 100, 180); // azul FarmaInvex para destacar el periodo
+  doc.text(`Periodo: ${datos.periodo}`, 14, 33);
+
   doc.setFontSize(9);
   doc.setTextColor(110, 110, 130);
-  doc.text(`Generado: ${fechaHora(new Date())}  ·  ${datos.filas.length} registro(s)`, 14, 32);
+  doc.text(`Generado: ${fechaHora(new Date())}  ·  ${datos.filas.length} registro(s)`, 14, 39);
 
   autoTable(doc, {
-    startY: 37,
+    startY: 44,
     head: [datos.columnas.map((c) => c.header)],
     body: datos.filas.map((f) => datos.columnas.map((c) => String(f[c.key] ?? ""))),
     styles: { fontSize: 8, cellPadding: 2 },
@@ -363,17 +388,39 @@ export async function generarExcel(datos: DatosReporte): Promise<ArrayBuffer> {
   const wb = new ExcelJS.Workbook();
   wb.creator = "FarmaInvex";
   const ws = wb.addWorksheet(datos.titulo.slice(0, 31));
+  const nCols = datos.columnas.length;
 
-  ws.columns = datos.columnas.map((c) => ({
-    header: c.header,
-    key: c.key,
-    width: c.width ?? 20,
-  }));
-  ws.addRows(datos.filas);
+  // Anchos y claves (sin cabecera automática: la colocamos manualmente más abajo).
+  ws.columns = datos.columnas.map((c) => ({ key: c.key, width: c.width ?? 20 }));
 
-  const cabecera = ws.getRow(1);
+  // Fila 1 — título del reporte.
+  ws.mergeCells(1, 1, 1, nCols);
+  const titulo = ws.getCell(1, 1);
+  titulo.value = `FarmaInvex — ${datos.titulo}`;
+  titulo.font = { bold: true, size: 14, color: { argb: "FF002878" } };
+  ws.getRow(1).height = 22;
+
+  // Fila 2 — periodo (legible, nunca null).
+  ws.mergeCells(2, 1, 2, nCols);
+  const periodo = ws.getCell(2, 1);
+  periodo.value = `Periodo: ${datos.periodo}`;
+  periodo.font = { bold: true, color: { argb: "FF0064B4" } };
+
+  // Fila 3 — metadatos de generación.
+  ws.mergeCells(3, 1, 3, nCols);
+  const meta = ws.getCell(3, 1);
+  meta.value = `Generado: ${fechaHora(new Date())}  ·  ${datos.filas.length} registro(s)`;
+  meta.font = { color: { argb: "FF6E6E82" }, size: 10 };
+
+  // Fila 5 — cabecera de la tabla.
+  const cabecera = ws.getRow(5);
+  cabecera.values = datos.columnas.map((c) => c.header);
   cabecera.font = { bold: true, color: { argb: "FFFFFFFF" } };
   cabecera.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF002878" } };
+
+  // Datos a partir de la fila 6.
+  datos.filas.forEach((fila) => ws.addRow(fila));
+  ws.views = [{ state: "frozen", ySplit: 5 }];
 
   const buffer = await wb.xlsx.writeBuffer();
   return buffer as ArrayBuffer;
