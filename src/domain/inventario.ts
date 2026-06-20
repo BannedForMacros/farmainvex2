@@ -6,11 +6,12 @@
  * Código original de FarmaInvex (obra independiente).
  */
 
-export type TipoMovimientoStock = "ENTRADA" | "SALIDA" | "TRASLADO" | "BAJA";
+export type TipoMovimientoStock = "ENTRADA" | "SALIDA" | "VENTA" | "TRASLADO" | "BAJA";
 
 /** Movimientos que descuentan stock. ENTRADA es el único que lo incrementa. */
 const MOVIMIENTOS_SALIDA: ReadonlySet<TipoMovimientoStock> = new Set([
   "SALIDA",
+  "VENTA",
   "TRASLADO",
   "BAJA",
 ]);

@@ -5,6 +5,7 @@ import type {
   TipoAlerta,
   Severidad,
   EstadoIncidencia,
+  TipoDocumento,
 } from "@/generated/prisma/enums";
 
 export const ETIQUETA_ESTADO_LOTE: Record<EstadoLote, string> = {
@@ -18,9 +19,15 @@ export const ETIQUETA_ESTADO_LOTE: Record<EstadoLote, string> = {
 export const ETIQUETA_TIPO_MOVIMIENTO: Record<TipoMovimiento, string> = {
   ENTRADA: "Entrada",
   SALIDA: "Salida",
+  VENTA: "Venta",
   TRASLADO: "Traslado",
   AJUSTE: "Ajuste",
   BAJA: "Baja",
+};
+
+export const ETIQUETA_TIPO_DOCUMENTO: Record<TipoDocumento, string> = {
+  RUC: "RUC",
+  DNI: "DNI",
 };
 
 export const ETIQUETA_TIPO_ESTABLECIMIENTO: Record<TipoEstablecimiento, string> = {

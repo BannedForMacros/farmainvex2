@@ -7,7 +7,7 @@
 FarmaInvex es una **compilación conceptual** de los proyectos hermanos **goalvend** (ventas) y **LogiRevers** (logística reversa), pero debe registrarse como **software DIFERENTE**. Comparte *ideas y patrones*, **nunca código literal**.
 
 - ❌ **NO** copiar archivos de goalvend/LogiRevers ni importar nada de ellos. Sin dependencias cruzadas.
-- ❌ **NO** agregar módulo de **ventas** (no está en el Word; ventas es dominio de goalvend — mantener la separación que sustenta el registro independiente).
+- ⚠️ **Ventas: AHORA EN ALCANCE** (decisión del cliente, 2026-06-20 — corrige la prohibición previa). La venta es un **tipo de salida** (`TipoMovimiento.VENTA`) que descuenta stock y referencia un `Cliente`. El módulo de **Clientes** (CRUD) usa la **API Decolecta** (RUC/DNI) para autorrellenar datos oficiales; los datos traídos de la API **no son editables**. Token en `.env` como `DECOLECTA_API` (secreto, no se versiona). Mantener la independencia por código propio (no copiar de goalvend).
 - ✅ Las librerías estándar compartidas (Next.js, Prisma, etc.) son legítimas; lo que debe ser propio es el **código de aplicación**.
 - ✅ Identidad visual propia: **header + sidebar colapsable** (goalvend usa otro layout), componentes UI escritos a mano, tipografía Plus Jakarta Sans, paleta del logo.
 

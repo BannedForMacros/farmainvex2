@@ -45,9 +45,20 @@ enum EstadoVencimiento {
 enum TipoMovimiento {
   ENTRADA
   SALIDA
+  VENTA
   TRASLADO
   AJUSTE
   BAJA
+}
+
+enum TipoDocumento {
+  RUC
+  DNI
+}
+
+enum OrigenDatos {
+  API
+  MANUAL
 }
 
 enum TipoAlerta {
@@ -152,6 +163,8 @@ model MovimientoFarmaceutico {
   destino      String? // establecimiento o área a donde van las unidades
   documentoRef String? // N.º de guía de remisión / acta de baja
   recibidoPor  String? // responsable que recibe en el destino (cadena de custodia)
+  cliente   Cliente?       @relation(fields: [clienteId], references: [id], onDelete: SetNull) // solo en VENTA
+  clienteId String?
   usuario   Usuario?       @relation(fields: [usuarioId], references: [id])
   usuarioId String?
   fecha     DateTime       @default(now()) // fecha real del movimiento (editable al registrar)
@@ -191,6 +204,29 @@ model Incidencia {
   actualizadoEn  DateTime         @updatedAt
 
   @@index([estado, severidad])
+}
+
+// ======================= Clientes (ventas) =======================
+
+// Cliente de venta. Los datos de origen API (Decolecta RUC/DNI) son oficiales y
+// NO se editan; solo los clientes MANUAL admiten edición del nombre.
+model Cliente {
+  id              String        @id @default(cuid())
+  tipoDocumento   TipoDocumento
+  numeroDocumento String        @unique
+  nombre          String // razón social (RUC) o nombre completo (DNI)
+  direccion       String?
+  estado          String? // ACTIVO (RUC)
+  condicion       String? // HABIDO (RUC)
+  distrito        String?
+  provincia       String?
+  departamento    String?
+  origenDatos     OrigenDatos   @default(MANUAL)
+  activo          Boolean       @default(true)
+  creadoEn        DateTime      @default(now())
+  movimientos     MovimientoFarmaceutico[]
+
+  @@index([nombre])
 }
 
 // ======================= Configuración (umbrales editables por ADMIN) =======================
