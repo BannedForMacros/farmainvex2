@@ -115,12 +115,12 @@ const lineaSalidaSchema = z.object({
   loteId: z.string().min(1),
   cantidad: z.coerce.number().int().positive(),
   motivo: z.string().trim().max(120).optional(),
+  documentoRef: z.string().trim().max(60).optional(), // documento por detalle
 });
 
 const salidaSchema = z.object({
   tipo: z.enum(TIPOS_SALIDA),
   destino: z.string().trim().max(120).optional(),
-  documentoRef: z.string().trim().max(60).optional(),
   recibidoPor: z.string().trim().max(120).optional(),
   fecha: z.string().optional(),
   lineas: z.array(lineaSalidaSchema).min(1, "Agrega al menos un lote."),
@@ -142,7 +142,6 @@ export async function registrarSalida(
   const parsed = salidaSchema.safeParse({
     tipo: formData.get("tipo"),
     destino: (formData.get("destino") as string) || undefined,
-    documentoRef: (formData.get("documentoRef") as string) || undefined,
     recibidoPor: (formData.get("recibidoPor") as string) || undefined,
     fecha: (formData.get("fecha") as string) || undefined,
     lineas: lineasRaw,
@@ -152,7 +151,7 @@ export async function registrarSalida(
     return { error: parsed.error.issues[0]?.message ?? "Datos de la salida inválidos." };
   }
 
-  const { tipo, destino, documentoRef, recibidoPor, fecha, lineas } = parsed.data;
+  const { tipo, destino, recibidoPor, fecha, lineas } = parsed.data;
 
   const ids = [...new Set(lineas.map((l) => l.loteId))];
   const lotes = await prisma.lote.findMany({ where: { id: { in: ids } } });

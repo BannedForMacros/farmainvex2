@@ -81,6 +81,55 @@ export async function lotesParaMovimiento(soloConStock = false): Promise<LoteOpc
   }));
 }
 
+export interface LoteSeleccionable {
+  id: string;
+  codigo: string;
+  stock: number;
+  vence: string;
+  ingreso: string;
+  estado: EstadoVencimiento;
+}
+
+export interface MedicamentoConLotes {
+  id: string;
+  nombre: string;
+  lotes: LoteSeleccionable[];
+}
+
+/**
+ * Medicamentos con sus lotes disponibles (stock > 0), agrupados para el flujo
+ * "elige medicamento → elige lote". Cada lote trae su fecha de ingreso (primer
+ * movimiento de ENTRADA) y está ordenado por vencimiento más próximo (FEFO).
+ */
+export async function medicamentosConLotesDisponibles(): Promise<MedicamentoConLotes[]> {
+  const meds = await prisma.medicamento.findMany({
+    where: { lotes: { some: { estado: { not: "RETIRADO" }, cantidad: { gt: 0 } } } },
+    include: {
+      lotes: {
+        where: { estado: { not: "RETIRADO" }, cantidad: { gt: 0 } },
+        orderBy: { fechaVencimiento: "asc" },
+        include: {
+          movimientos: { where: { tipo: "ENTRADA" }, orderBy: { fecha: "asc" }, take: 1 },
+        },
+      },
+    },
+    orderBy: { nombreComercial: "asc" },
+  });
+
+  return meds.map((m) => ({
+    id: m.id,
+    nombre: m.nombreComercial,
+    lotes: m.lotes.map((l) => ({
+      id: l.id,
+      codigo: l.codigo,
+      stock: l.cantidad,
+      vence: fechaCorta(l.fechaVencimiento),
+      ingreso: fechaCorta(l.movimientos[0]?.fecha ?? l.creadoEn),
+      estado: l.estadoVencimiento as EstadoVencimiento,
+    })),
+  }));
+}
+
 /** Nombres de establecimientos para el select de destino de los movimientos. */
 export async function nombresEstablecimientos(): Promise<string[]> {
   const ests = await prisma.establecimiento.findMany({
