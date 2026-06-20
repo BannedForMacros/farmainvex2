@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { EstadoBadge } from "@/components/estado-badge";
 import { BotonEliminar } from "@/components/boton-eliminar";
+import { moneda } from "@/lib/format";
 import { eliminarLote } from "./actions";
 
 export const metadata: Metadata = { title: "Lotes" };
@@ -45,6 +46,7 @@ export default async function LotesPage() {
                     <th className="p-3 font-medium"># Fabricante</th>
                     <th className="p-3 font-medium">Medicamento</th>
                     <th className="p-3 font-medium">Cantidad</th>
+                    <th className="p-3 font-medium">Valor</th>
                     <th className="p-3 font-medium">Vence</th>
                     <th className="p-3 font-medium">Estado</th>
                     <th className="p-3 text-right font-medium">Acciones</th>
@@ -57,6 +59,9 @@ export default async function LotesPage() {
                       <td className="p-3">{lote.numeroLote}</td>
                       <td className="p-3 font-medium">{lote.medicamento.nombreComercial}</td>
                       <td className="p-3">{lote.cantidad}</td>
+                      <td className="p-3 whitespace-nowrap">
+                        {moneda(lote.cantidad * Number(lote.costoUnitario))}
+                      </td>
                       <td className="p-3">{lote.fechaVencimiento.toLocaleDateString("es-PE")}</td>
                       <td className="p-3">
                         <EstadoBadge estado={lote.estadoVencimiento} />

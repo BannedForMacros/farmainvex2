@@ -68,17 +68,18 @@ async function main() {
 
   // Lotes con vencimientos variados (vigente / preventivo / crítico / vencido)
   const definicionLotes = [
-    { med: 0, numero: "L-AX22", dias: 400, cantidad: 320 }, // 🟢 vigente
-    { med: 1, numero: "L-BX09", dias: 75, cantidad: 140 }, //  🟡 preventiva
-    { med: 2, numero: "L-CX17", dias: 20, cantidad: 60 }, //   🔴 crítico
-    { med: 3, numero: "L-DX01", dias: -5, cantidad: 25 }, //   🔴 vencido
-    { med: 0, numero: "L-AX23", dias: 200, cantidad: 500 }, // 🟢 vigente
+    { med: 0, numero: "L-AX22", dias: 400, cantidad: 320, costo: 4.5, salida: 40 }, //  🟢 vigente
+    { med: 1, numero: "L-BX09", dias: 75, cantidad: 140, costo: 12.8, salida: 25 }, //  🟡 preventiva
+    { med: 2, numero: "L-CX17", dias: 20, cantidad: 60, costo: 8.2, salida: 0 }, //     🔴 crítico
+    { med: 3, numero: "L-DX01", dias: -5, cantidad: 25, costo: 30.0, salida: 0 }, //    🔴 vencido
+    { med: 0, numero: "L-AX23", dias: 200, cantidad: 500, costo: 4.5, salida: 120 }, // 🟢 vigente
   ];
 
   let n = 1;
   for (const def of definicionLotes) {
     const fechaVencimiento = enDias(def.dias);
     const ev = evaluarLote(fechaVencimiento, UMBRALES_POR_DEFECTO);
+    const cantidadActual = def.cantidad - def.salida;
     const lote = await prisma.lote.create({
       data: {
         codigo: `FI-LOT-${String(n++).padStart(4, "0")}`,
@@ -87,7 +88,8 @@ async function main() {
         establecimientoId: central.id,
         fechaFabricacion: enDias(def.dias - 720),
         fechaVencimiento,
-        cantidad: def.cantidad,
+        cantidad: cantidadActual,
+        costoUnitario: def.costo,
         diasRestantes: ev.dias,
         estadoVencimiento: ev.estado,
         estado: ev.vencido ? "VENCIDO" : ev.estado === "PREVENTIVA" || ev.estado === "CRITICO" ? "PROXIMO_VENCER" : "VIGENTE",
@@ -104,6 +106,19 @@ async function main() {
         usuarioId: farmaceutico?.id,
       },
     });
+
+    // Salida de ejemplo (dispensación) para los lotes que la tengan definida.
+    if (def.salida > 0) {
+      await prisma.movimientoFarmaceutico.create({
+        data: {
+          loteId: lote.id,
+          tipo: "SALIDA",
+          cantidad: def.salida,
+          motivo: "Dispensación a establecimiento",
+          usuarioId: farmaceutico?.id,
+        },
+      });
+    }
   }
 
   console.log("✅ Listo. Usuarios demo (contraseña: farmainvex123):");
