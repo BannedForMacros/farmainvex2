@@ -56,6 +56,7 @@ export default async function EditarLotePage({ params }: { params: Promise<{ id:
               fechaFabricacion: aInputDate(lote.fechaFabricacion),
               fechaVencimiento: aInputDate(lote.fechaVencimiento),
               cantidad: lote.cantidad,
+              costoUnitario: Number(lote.costoUnitario),
               establecimientoId: lote.establecimientoId,
               observado: lote.observado,
             }}

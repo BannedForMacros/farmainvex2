@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
-import { Pill, Boxes, BellRing, ShieldAlert, CircleCheck } from "lucide-react";
+import { Pill, Boxes, BellRing, ShieldAlert, CircleCheck, Coins } from "lucide-react";
 import { obtenerKpis, lotesProximosAVencer } from "@/services/dashboard.service";
+import { moneda } from "@/lib/format";
 import { SEMAFORO, type EstadoVencimiento } from "@/domain/vencimiento";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EstadoBadge, ICONO_ESTADO } from "@/components/estado-badge";
@@ -54,6 +55,26 @@ export default async function DashboardPage() {
           );
         })}
       </div>
+
+      {/* Valor de inventario (valorizado por lotes) */}
+      <Card>
+        <CardContent className="flex items-center justify-between gap-4 p-5">
+          <div className="flex items-center gap-4">
+            <span className="grid size-12 place-items-center rounded-xl bg-fx-blue/10 text-fx-blue">
+              <Coins className="size-6" />
+            </span>
+            <div>
+              <p className="text-sm text-muted-foreground">Valor total del inventario</p>
+              <p className="mt-0.5 text-3xl font-bold text-fx-blue">
+                {moneda(kpis.valorInventario)}
+              </p>
+            </div>
+          </div>
+          <p className="hidden text-right text-sm text-muted-foreground sm:block">
+            {kpis.totalLotes} lote(s) valorizado(s)<br />por costo de adquisición
+          </p>
+        </CardContent>
+      </Card>
 
       {/* Semáforo de vencimientos */}
       <div className="grid gap-4 sm:grid-cols-3">

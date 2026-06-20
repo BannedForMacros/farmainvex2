@@ -2,7 +2,7 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import ExcelJS from "exceljs";
 import { prisma } from "@/lib/prisma";
-import { fechaCorta, fechaHora } from "@/lib/format";
+import { fechaCorta, fechaHora, moneda } from "@/lib/format";
 import { SEMAFORO } from "@/domain/vencimiento";
 import {
   ETIQUETA_ESTADO_LOTE,
@@ -61,6 +61,7 @@ export type TipoReporte =
   | "proximos"
   | "alertas"
   | "historial"
+  | "inventario"
   | "incidencias";
 
 export const REPORTES: { tipo: TipoReporte; titulo: string; descripcion: string }[] = [
@@ -69,6 +70,7 @@ export const REPORTES: { tipo: TipoReporte; titulo: string; descripcion: string 
   { tipo: "proximos", titulo: "Próximos a vencer", descripcion: "Lotes en alerta preventiva o crítica." },
   { tipo: "alertas", titulo: "Alertas sanitarias", descripcion: "Alertas generadas por el sistema." },
   { tipo: "historial", titulo: "Historial farmacéutico", descripcion: "Movimientos de entrada, salida y trazabilidad de lotes." },
+  { tipo: "inventario", titulo: "Inventario valorizado", descripcion: "Valor del stock por lote (cantidad × costo unitario)." },
   { tipo: "incidencias", titulo: "Incidencias", descripcion: "Incidencias sanitarias y su estado." },
 ];
 
@@ -236,6 +238,41 @@ async function construirDatos(
       };
     }
 
+    case "inventario": {
+      const lotes = await prisma.lote.findMany({
+        where: { estado: { not: "RETIRADO" }, creadoEn: fecha },
+        include: { medicamento: true },
+        orderBy: { medicamento: { nombreComercial: "asc" } },
+      });
+      const filas: Record<string, string | number>[] = lotes.map((l) => ({
+        codigo: l.codigo,
+        medicamento: l.medicamento.nombreComercial,
+        cantidad: l.cantidad,
+        costo: moneda(Number(l.costoUnitario)),
+        valor: moneda(l.cantidad * Number(l.costoUnitario)),
+        vencimiento: fechaCorta(l.fechaVencimiento),
+        estado: SEMAFORO[l.estadoVencimiento].etiqueta,
+      }));
+      const total = lotes.reduce((s, l) => s + l.cantidad * Number(l.costoUnitario), 0);
+      if (lotes.length > 0) {
+        filas.push({ codigo: "", medicamento: "", cantidad: "", costo: "TOTAL", valor: moneda(total), vencimiento: "", estado: "" });
+      }
+      return {
+        tipo,
+        titulo: "Inventario valorizado",
+        columnas: [
+          { header: "Lote", key: "codigo", width: 16 },
+          { header: "Medicamento", key: "medicamento", width: 28 },
+          { header: "Cantidad", key: "cantidad", width: 12 },
+          { header: "Costo unit.", key: "costo", width: 16 },
+          { header: "Valor", key: "valor", width: 18 },
+          { header: "Vencimiento", key: "vencimiento", width: 16 },
+          { header: "Estado", key: "estado", width: 20 },
+        ],
+        filas,
+      };
+    }
+
     case "incidencias": {
       const datos = await prisma.incidencia.findMany({
         where: { creadoEn: fecha },
@@ -336,6 +373,26 @@ export async function obtenerGraficoReporte(
         titulo: "Movimientos por tipo",
         series: ordenar(g.map((x) => ({ nombre: ETIQUETA_TIPO_MOVIMIENTO[x.tipo], valor: x._count._all }))),
       };
+    }
+
+    case "inventario": {
+      const lotes = await prisma.lote.findMany({
+        where: { estado: { not: "RETIRADO" }, creadoEn: fecha },
+        include: { medicamento: true },
+      });
+      const porMedicamento = new Map<string, number>();
+      for (const l of lotes) {
+        const nombre = l.medicamento.nombreComercial;
+        const valor = l.cantidad * Number(l.costoUnitario);
+        porMedicamento.set(nombre, (porMedicamento.get(nombre) ?? 0) + valor);
+      }
+      const series = ordenar(
+        [...porMedicamento.entries()].map(([nombre, valor]) => ({
+          nombre,
+          valor: Math.round(valor * 100) / 100,
+        })),
+      ).slice(0, 8);
+      return { tipo: "bar", titulo: "Valor de inventario por medicamento (S/)", series };
     }
 
     case "incidencias": {

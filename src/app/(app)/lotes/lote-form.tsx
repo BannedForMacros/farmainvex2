@@ -19,6 +19,7 @@ interface LoteFormProps {
     fechaFabricacion: string; // yyyy-mm-dd
     fechaVencimiento: string; // yyyy-mm-dd
     cantidad: number;
+    costoUnitario: number;
     establecimientoId: string | null;
     observado: boolean;
   };
@@ -62,6 +63,16 @@ export function LoteForm({ medicamentos, establecimientos, lote }: LoteFormProps
 
         <Campo etiqueta="Cantidad *" error={err.cantidad}>
           <Input type="number" name="cantidad" min={0} defaultValue={lote?.cantidad ?? 0} required />
+        </Campo>
+
+        <Campo etiqueta="Costo unitario (S/)" error={err.costoUnitario}>
+          <Input
+            type="number"
+            name="costoUnitario"
+            min={0}
+            step="0.01"
+            defaultValue={lote?.costoUnitario ?? 0}
+          />
         </Campo>
 
         <Campo etiqueta="Establecimiento" error={err.establecimientoId}>

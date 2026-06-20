@@ -8,6 +8,7 @@ export interface KpisDashboard {
   lotesCriticos: number;
   alertasSinLeer: number;
   incidenciasAbiertas: number;
+  valorInventario: number;
 }
 
 export async function obtenerKpis(): Promise<KpisDashboard> {
@@ -19,6 +20,7 @@ export async function obtenerKpis(): Promise<KpisDashboard> {
     lotesCriticos,
     alertasSinLeer,
     incidenciasAbiertas,
+    lotesValor,
   ] = await Promise.all([
     prisma.medicamento.count(),
     prisma.lote.count(),
@@ -27,7 +29,16 @@ export async function obtenerKpis(): Promise<KpisDashboard> {
     prisma.lote.count({ where: { estadoVencimiento: "CRITICO" } }),
     prisma.alerta.count({ where: { leida: false, resuelta: false } }),
     prisma.incidencia.count({ where: { estado: { in: ["ABIERTA", "EN_SEGUIMIENTO"] } } }),
+    prisma.lote.findMany({
+      where: { estado: { not: "RETIRADO" } },
+      select: { cantidad: true, costoUnitario: true },
+    }),
   ]);
+
+  const valorInventario = lotesValor.reduce(
+    (suma, l) => suma + l.cantidad * Number(l.costoUnitario),
+    0,
+  );
 
   return {
     totalMedicamentos,
@@ -37,6 +48,7 @@ export async function obtenerKpis(): Promise<KpisDashboard> {
     lotesCriticos,
     alertasSinLeer,
     incidenciasAbiertas,
+    valorInventario,
   };
 }
 
