@@ -11,13 +11,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { LotesHistorialModal } from "./lotes-historial-modal";
+import { ClienteSelector } from "./cliente-selector";
 import type { MedicamentoConLotes } from "@/services/inventario.service";
+import type { ClienteLite } from "@/services/cliente.service";
 
 const inicial: EstadoMovimiento = {};
-const TIPOS: TipoMovimientoStock[] = ["SALIDA", "TRASLADO", "BAJA"];
+const TIPOS: TipoMovimientoStock[] = ["SALIDA", "VENTA", "TRASLADO", "BAJA"];
 
 const MOTIVOS: Record<string, string[]> = {
   SALIDA: ["Dispensación", "Consumo interno", "Devolución a proveedor"],
+  VENTA: ["Venta mostrador", "Venta institucional"],
   TRASLADO: ["Traslado entre establecimientos"],
   BAJA: ["Vencimiento", "Deterioro", "Contaminación", "Retiro sanitario", "Rotura / merma"],
 };
@@ -35,13 +38,17 @@ export function RegistrarSalidaForm({
   medicamentos,
   establecimientos,
   usuarios,
+  clientes,
 }: {
   medicamentos: MedicamentoConLotes[];
   establecimientos: string[];
   usuarios: string[];
+  clientes: ClienteLite[];
 }) {
   const [estado, action, pendiente] = useActionState(registrarSalida, inicial);
   const [tipo, setTipo] = useState<TipoMovimientoStock>("SALIDA");
+  const [clienteId, setClienteId] = useState("");
+  const esVenta = tipo === "VENTA";
   const nuevaLinea = (key: number): Linea => {
     const med = medicamentos[0];
     return {
@@ -103,7 +110,8 @@ export function RegistrarSalidaForm({
     return { med, lote, disponible, preview };
   };
 
-  const todoValido = lineas.every((l, i) => l.loteId && evaluarLinea(i).preview?.ok);
+  const todoValido =
+    lineas.every((l, i) => l.loteId && evaluarLinea(i).preview?.ok) && (!esVenta || !!clienteId);
 
   const lineasJson = JSON.stringify(
     lineas.map((l) => ({
