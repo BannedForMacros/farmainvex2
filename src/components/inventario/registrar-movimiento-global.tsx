@@ -24,6 +24,7 @@ const SOLO_SALIDA: TipoMovimientoStock[] = ["SALIDA", "TRASLADO", "BAJA"];
 const MOTIVOS: Record<TipoMovimientoStock, string[]> = {
   ENTRADA: ["Compra / reposición", "Devolución de área", "Donación", "Ajuste de inventario"],
   SALIDA: ["Dispensación", "Consumo interno", "Devolución a proveedor"],
+  VENTA: ["Venta mostrador", "Venta institucional"],
   TRASLADO: ["Traslado entre establecimientos"],
   BAJA: ["Vencimiento", "Deterioro", "Contaminación", "Retiro sanitario", "Rotura / merma"],
 };

@@ -4,7 +4,7 @@ import { fechaCorta } from "@/lib/format";
 import type { EstadoVencimiento } from "@/domain/vencimiento";
 
 /** Tipos de movimiento que representan una salida de stock. */
-export const TIPOS_SALIDA = ["SALIDA", "TRASLADO", "BAJA"] as const;
+export const TIPOS_SALIDA = ["SALIDA", "VENTA", "TRASLADO", "BAJA"] as const;
 
 export interface FilaInventario {
   id: string;
@@ -158,11 +158,11 @@ export async function movimientosRecientes(limite = 12) {
   });
 }
 
-/** Últimas salidas (SALIDA/TRASLADO/BAJA) de todos los lotes. */
+/** Últimas salidas (SALIDA/VENTA/TRASLADO/BAJA) de todos los lotes. */
 export async function salidasRecientes(limite = 40) {
   return prisma.movimientoFarmaceutico.findMany({
     where: { tipo: { in: [...TIPOS_SALIDA] } },
-    include: { lote: { include: { medicamento: true } }, usuario: true },
+    include: { lote: { include: { medicamento: true } }, usuario: true, cliente: true },
     orderBy: { fecha: "desc" },
     take: limite,
   });

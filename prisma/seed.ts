@@ -23,6 +23,7 @@ async function main() {
   await prisma.alerta.deleteMany();
   await prisma.incidencia.deleteMany();
   await prisma.movimientoFarmaceutico.deleteMany();
+  await prisma.cliente.deleteMany();
   await prisma.lote.deleteMany();
   await prisma.medicamento.deleteMany();
   await prisma.usuario.deleteMany();
@@ -63,6 +64,17 @@ async function main() {
   const supervisor = byEmail("supervisor@farmainvex.pe");
   const operador = byEmail("operador@farmainvex.pe");
   const receptores = ["Químico Farmacéutico", "Supervisor Sanitario", "Operador de Almacén"];
+
+  // Clientes (datos de ejemplo de la API Decolecta / documentos públicos)
+  const CLIENTES = [
+    { tipoDocumento: "RUC", numeroDocumento: "20601030013", nombre: "REXTIE S.A.C.", direccion: "AV. JOSE GALVEZ BARRENECHEA 566 INT. 101, SAN ISIDRO", estado: "ACTIVO", condicion: "HABIDO", distrito: "SAN ISIDRO", provincia: "LIMA", departamento: "LIMA", origenDatos: "API" },
+    { tipoDocumento: "RUC", numeroDocumento: "20100070970", nombre: "SUPERMERCADOS PERUANOS S.A.", direccion: "AV. PASEO DE LA REPUBLICA, LIMA", estado: "ACTIVO", condicion: "HABIDO", distrito: "LIMA", provincia: "LIMA", departamento: "LIMA", origenDatos: "API" },
+    { tipoDocumento: "DNI", numeroDocumento: "46027897", nombre: "DELGADO HUAMANI ROXANA KARINA", origenDatos: "API" },
+    { tipoDocumento: "DNI", numeroDocumento: "10000001", nombre: "Cliente Mostrador", origenDatos: "MANUAL" },
+  ];
+  const clientes = await Promise.all(
+    CLIENTES.map((c) => prisma.cliente.create({ data: c as never })),
+  );
 
   // Medicamentos
   const MEDS = [
@@ -169,15 +181,23 @@ async function main() {
           const cant = Math.max(5, Math.floor(stock * (0.12 + 0.05 * k)));
           if (cant >= stock) break;
           const esTraslado = k === numSalidas - 1 && i % 4 === 0;
+          const esVenta = k === 0 && i % 2 === 0 && !esTraslado;
           await prisma.movimientoFarmaceutico.create({
             data: {
               loteId: lote.id,
-              tipo: esTraslado ? "TRASLADO" : "SALIDA",
+              tipo: esVenta ? "VENTA" : esTraslado ? "TRASLADO" : "SALIDA",
               cantidad: cant,
-              motivo: esTraslado ? "Traslado entre establecimientos" : motivosSalida[k % motivosSalida.length],
-              destino: ests[(estIdx + k + 1) % ests.length].nombre,
-              recibidoPor: receptores[(i + k) % receptores.length],
-              documentoRef: `GR-${salidaDoc++}`,
+              motivo: esVenta
+                ? "Venta mostrador"
+                : esTraslado
+                  ? "Traslado entre establecimientos"
+                  : motivosSalida[k % motivosSalida.length],
+              destino: esVenta ? null : ests[(estIdx + k + 1) % ests.length].nombre,
+              recibidoPor: esVenta ? null : receptores[(i + k) % receptores.length],
+              clienteId: esVenta ? clientes[i % clientes.length].id : undefined,
+              documentoRef: esVenta
+                ? `B001-${String(salidaDoc++).padStart(6, "0")}`
+                : `GR-${salidaDoc++}`,
               usuarioId: farmaceutico?.id,
               fecha: enDias(-(120 - ((i * 9 + k * 20) % 110))),
             },
@@ -227,7 +247,8 @@ async function main() {
     prisma.alerta.count(),
     prisma.incidencia.count(),
   ]);
-  console.log(`✅ Listo: ${meds.length} medicamentos · ${totales[0]} lotes · ${totales[1]} movimientos · ${totales[2]} alertas · ${totales[3]} incidencias`);
+  const ventas = await prisma.movimientoFarmaceutico.count({ where: { tipo: "VENTA" } });
+  console.log(`✅ Listo: ${meds.length} medicamentos · ${totales[0]} lotes · ${totales[1]} movimientos (${ventas} ventas) · ${clientes.length} clientes · ${totales[2]} alertas · ${totales[3]} incidencias`);
   console.log("   Usuarios demo (contraseña: farmainvex123): admin@farmainvex.pe · supervisor@farmainvex.pe · farmaceutico@farmainvex.pe · operador@farmainvex.pe");
 }
 

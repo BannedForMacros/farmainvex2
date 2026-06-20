@@ -63,6 +63,8 @@ export type TipoReporte =
   | "alertas"
   | "historial"
   | "inventario"
+  | "ventas"
+  | "clientes"
   | "incidencias";
 
 export const REPORTES: { tipo: TipoReporte; titulo: string; descripcion: string }[] = [
@@ -72,6 +74,8 @@ export const REPORTES: { tipo: TipoReporte; titulo: string; descripcion: string 
   { tipo: "alertas", titulo: "Alertas sanitarias", descripcion: "Alertas generadas por el sistema." },
   { tipo: "historial", titulo: "Historial farmacéutico", descripcion: "Movimientos de entrada, salida y trazabilidad de lotes." },
   { tipo: "inventario", titulo: "Inventario valorizado", descripcion: "Valor del stock por lote (cantidad × costo unitario)." },
+  { tipo: "ventas", titulo: "Ventas", descripcion: "Movimientos de venta con su cliente y documento." },
+  { tipo: "clientes", titulo: "Clientes", descripcion: "Clientes registrados y su verificación." },
   { tipo: "incidencias", titulo: "Incidencias", descripcion: "Incidencias sanitarias y su estado." },
 ];
 
@@ -280,6 +284,60 @@ async function construirDatos(
       };
     }
 
+    case "ventas": {
+      const datos = await prisma.movimientoFarmaceutico.findMany({
+        where: { tipo: "VENTA", fecha },
+        include: { lote: { include: { medicamento: true } }, cliente: true },
+        orderBy: { fecha: "desc" },
+      });
+      return {
+        tipo,
+        titulo: "Ventas",
+        columnas: [
+          { header: "Fecha", key: "fecha", width: 18 },
+          { header: "Cliente", key: "cliente", width: 28 },
+          { header: "Documento cliente", key: "doc", width: 18 },
+          { header: "Medicamento", key: "medicamento", width: 26 },
+          { header: "Lote", key: "lote", width: 14 },
+          { header: "Cantidad", key: "cantidad", width: 10 },
+          { header: "Comprobante", key: "comprobante", width: 18 },
+        ],
+        filas: datos.map((m) => ({
+          fecha: fechaHora(m.fecha),
+          cliente: m.cliente?.nombre ?? "—",
+          doc: m.cliente ? `${m.cliente.tipoDocumento} ${m.cliente.numeroDocumento}` : "—",
+          medicamento: m.lote.medicamento.nombreComercial,
+          lote: m.lote.codigo,
+          cantidad: m.cantidad,
+          comprobante: m.documentoRef ?? "—",
+        })),
+      };
+    }
+
+    case "clientes": {
+      const datos = await prisma.cliente.findMany({ orderBy: { nombre: "asc" } });
+      return {
+        tipo,
+        titulo: "Clientes",
+        columnas: [
+          { header: "Tipo", key: "tipoDoc", width: 10 },
+          { header: "Documento", key: "documento", width: 16 },
+          { header: "Nombre / Razón social", key: "nombre", width: 32 },
+          { header: "Dirección", key: "direccion", width: 32 },
+          { header: "Origen", key: "origen", width: 12 },
+          { header: "Estado", key: "estadoCli", width: 12 },
+        ],
+        filas: datos.map((c) => ({
+          tipoDoc: ETIQUETA_TIPO_DOCUMENTO[c.tipoDocumento],
+          documento: c.numeroDocumento,
+          nombre: c.nombre,
+          direccion: c.direccion ?? "—",
+          origen: c.origenDatos === "API" ? "Verificado" : "Manual",
+          estadoCli: c.activo ? "Activo" : "Inactivo",
+        })),
+      };
+    }
+
     case "incidencias": {
       const datos = await prisma.incidencia.findMany({
         where: { creadoEn: fecha },
@@ -400,6 +458,32 @@ export async function obtenerGraficoReporte(
         })),
       ).slice(0, 8);
       return { tipo: "bar", titulo: "Valor de inventario por medicamento (S/)", series };
+    }
+
+    case "ventas": {
+      const ventas = await prisma.movimientoFarmaceutico.findMany({
+        where: { tipo: "VENTA", fecha },
+        include: { lote: { include: { medicamento: true } } },
+      });
+      const porMed = new Map<string, number>();
+      for (const v of ventas) {
+        const nombre = v.lote.medicamento.nombreComercial;
+        porMed.set(nombre, (porMed.get(nombre) ?? 0) + v.cantidad);
+      }
+      return {
+        tipo: "bar",
+        titulo: "Unidades vendidas por medicamento",
+        series: ordenar([...porMed.entries()].map(([nombre, valor]) => ({ nombre, valor }))).slice(0, 8),
+      };
+    }
+
+    case "clientes": {
+      const g = await prisma.cliente.groupBy({ by: ["tipoDocumento"], _count: { _all: true } });
+      return {
+        tipo: "pie",
+        titulo: "Clientes por tipo de documento",
+        series: g.map((x) => ({ nombre: ETIQUETA_TIPO_DOCUMENTO[x.tipoDocumento], valor: x._count._all })),
+      };
     }
 
     case "incidencias": {

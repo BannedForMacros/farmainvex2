@@ -19,6 +19,7 @@ export interface MovimientoDetalle {
   destino: string | null;
   documentoRef: string | null;
   recibidoPor: string | null;
+  cliente: string | null;
   fecha: Date;
   responsable: string;
 }
@@ -47,6 +48,7 @@ export function MovimientoDetalleModal({ m }: { m: MovimientoDetalle }) {
             <span className="font-semibold text-danger">−{m.cantidad}</span>
           </Dato>
           <Dato etiqueta="Motivo">{m.motivo ?? "—"}</Dato>
+          {m.cliente && <Dato etiqueta="Cliente">{m.cliente}</Dato>}
           <Dato etiqueta="Destino">{m.destino ?? "—"}</Dato>
           <Dato etiqueta="Documento de referencia">{m.documentoRef ?? "—"}</Dato>
           <Dato etiqueta="Recibido por">{m.recibidoPor ?? "—"}</Dato>

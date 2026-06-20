@@ -96,6 +96,7 @@ export default async function SalidasPage() {
                               destino: m.destino,
                               documentoRef: m.documentoRef,
                               recibidoPor: m.recibidoPor,
+                              cliente: m.cliente?.nombre ?? null,
                               fecha: m.fecha,
                               responsable: m.usuario?.nombre ?? "—",
                             }}

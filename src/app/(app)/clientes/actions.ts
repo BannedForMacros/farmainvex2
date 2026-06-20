@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@/generated/prisma/client";
 import { requireRol } from "@/lib/session";
 import {
   consultarDocumento,
@@ -48,29 +49,25 @@ export async function crearCliente(input: {
 
   const consulta = await consultarDocumento(tipo, numero);
 
-  let data;
+  let data: Prisma.ClienteCreateInput;
   if (consulta.ok) {
+    const d = consulta.datos;
     data = {
       tipoDocumento: tipo,
       numeroDocumento: numero,
-      nombre: consulta.datos.nombre,
-      direccion: consulta.datos.direccion ?? null,
-      estado: consulta.datos.estado ?? null,
-      condicion: consulta.datos.condicion ?? null,
-      distrito: consulta.datos.distrito ?? null,
-      provincia: consulta.datos.provincia ?? null,
-      departamento: consulta.datos.departamento ?? null,
-      origenDatos: "API" as const,
+      nombre: d.nombre,
+      direccion: d.direccion ?? null,
+      estado: d.estado ?? null,
+      condicion: d.condicion ?? null,
+      distrito: d.distrito ?? null,
+      provincia: d.provincia ?? null,
+      departamento: d.departamento ?? null,
+      origenDatos: "API",
     };
   } else {
     const nombre = (input.nombreManual ?? "").trim();
     if (!nombre) return { ok: false, error: consulta.error };
-    data = {
-      tipoDocumento: tipo,
-      numeroDocumento: numero,
-      nombre,
-      origenDatos: "MANUAL" as const,
-    };
+    data = { tipoDocumento: tipo, numeroDocumento: numero, nombre, origenDatos: "MANUAL" };
   }
 
   const cliente = await prisma.cliente.create({ data });
