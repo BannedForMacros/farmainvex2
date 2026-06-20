@@ -46,9 +46,12 @@ export function MovimientoDetalleModal({ m }: { m: MovimientoDetalle }) {
           <Dato etiqueta="Cantidad">
             <span className="font-semibold text-danger">−{m.cantidad}</span>
           </Dato>
-          <Dato etiqueta="Fecha y hora">{fechaHora(m.fecha)}</Dato>
-          <Dato etiqueta="Responsable">{m.responsable}</Dato>
           <Dato etiqueta="Motivo">{m.motivo ?? "—"}</Dato>
+          <Dato etiqueta="Destino">{m.destino ?? "—"}</Dato>
+          <Dato etiqueta="Documento de referencia">{m.documentoRef ?? "—"}</Dato>
+          <Dato etiqueta="Recibido por">{m.recibidoPor ?? "—"}</Dato>
+          <Dato etiqueta="Fecha y hora">{fechaHora(m.fecha)}</Dato>
+          <Dato etiqueta="Registrado por">{m.responsable}</Dato>
         </dl>
         <Link
           href={`/lotes/${m.loteId}`}

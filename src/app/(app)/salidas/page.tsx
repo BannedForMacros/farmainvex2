@@ -68,7 +68,8 @@ export default async function SalidasPage() {
                     <th className="p-3 font-medium">Lote</th>
                     <th className="p-3 font-medium">Medicamento</th>
                     <th className="p-3 font-medium">Cantidad</th>
-                    <th className="p-3 font-medium">Responsable</th>
+                    <th className="p-3 font-medium">Destino</th>
+                    <th className="p-3 font-medium">Documento</th>
                     <th className="p-3 text-right font-medium">Detalle</th>
                   </tr>
                 </thead>
@@ -80,7 +81,8 @@ export default async function SalidasPage() {
                       <td className="p-3 font-mono text-xs">{m.lote.codigo}</td>
                       <td className="p-3">{m.lote.medicamento.nombreComercial}</td>
                       <td className="p-3 font-semibold text-danger">−{m.cantidad}</td>
-                      <td className="p-3">{m.usuario?.nombre ?? "—"}</td>
+                      <td className="p-3">{m.destino ?? "—"}</td>
+                      <td className="p-3 text-muted-foreground">{m.documentoRef ?? "—"}</td>
                       <td className="p-3">
                         <div className="flex justify-end">
                           <MovimientoDetalleModal
@@ -91,6 +93,9 @@ export default async function SalidasPage() {
                               tipo: m.tipo,
                               cantidad: m.cantidad,
                               motivo: m.motivo,
+                              destino: m.destino,
+                              documentoRef: m.documentoRef,
+                              recibidoPor: m.recibidoPor,
                               fecha: m.fecha,
                               responsable: m.usuario?.nombre ?? "—",
                             }}

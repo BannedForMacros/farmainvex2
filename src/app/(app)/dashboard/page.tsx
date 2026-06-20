@@ -1,29 +1,31 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Pill, Boxes, BellRing, ShieldAlert, CircleCheck, Coins } from "lucide-react";
-import { obtenerKpis, lotesProximosAVencer } from "@/services/dashboard.service";
+import {
+  obtenerKpis,
+  lotesProximosAVencer,
+  obtenerGraficosDashboard,
+} from "@/services/dashboard.service";
 import { moneda } from "@/lib/format";
-import { SEMAFORO, type EstadoVencimiento } from "@/domain/vencimiento";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { EstadoBadge, ICONO_ESTADO } from "@/components/estado-badge";
+import { EstadoBadge } from "@/components/estado-badge";
+import { GraficoReporteVista } from "@/components/reportes/grafico-reporte";
 import { RecalcularBoton } from "@/components/dashboard/recalcular-boton";
 
 export const metadata: Metadata = { title: "Panel" };
 
 export default async function DashboardPage() {
-  const kpis = await obtenerKpis();
-  const proximos = await lotesProximosAVencer();
+  const [kpis, graficos, proximos] = await Promise.all([
+    obtenerKpis(),
+    obtenerGraficosDashboard(),
+    lotesProximosAVencer(),
+  ]);
 
   const tarjetas = [
     { etiqueta: "Medicamentos", valor: kpis.totalMedicamentos, icono: Pill, tono: "text-fx-blue" },
     { etiqueta: "Lotes registrados", valor: kpis.totalLotes, icono: Boxes, tono: "text-fx-teal" },
     { etiqueta: "Alertas sin leer", valor: kpis.alertasSinLeer, icono: BellRing, tono: "text-[color:var(--warning)]" },
     { etiqueta: "Incidencias abiertas", valor: kpis.incidenciasAbiertas, icono: ShieldAlert, tono: "text-danger" },
-  ];
-
-  const semaforo: { estado: EstadoVencimiento; valor: number }[] = [
-    { estado: "VIGENTE", valor: kpis.lotesVigentes },
-    { estado: "PREVENTIVA", valor: kpis.lotesPreventiva },
-    { estado: "CRITICO", valor: kpis.lotesCriticos },
   ];
 
   return (
@@ -56,7 +58,7 @@ export default async function DashboardPage() {
         })}
       </div>
 
-      {/* Valor de inventario (valorizado por lotes) */}
+      {/* Valor de inventario */}
       <Card>
         <CardContent className="flex items-center justify-between gap-4 p-5">
           <div className="flex items-center gap-4">
@@ -65,41 +67,41 @@ export default async function DashboardPage() {
             </span>
             <div>
               <p className="text-sm text-muted-foreground">Valor total del inventario</p>
-              <p className="mt-0.5 text-3xl font-bold text-fx-blue">
-                {moneda(kpis.valorInventario)}
-              </p>
+              <p className="mt-0.5 text-3xl font-bold text-fx-blue">{moneda(kpis.valorInventario)}</p>
             </div>
           </div>
           <p className="hidden text-right text-sm text-muted-foreground sm:block">
-            {kpis.totalLotes} lote(s) valorizado(s)<br />por costo de adquisición
+            {kpis.totalLotes} lote(s) valorizado(s)
           </p>
         </CardContent>
       </Card>
 
-      {/* Semáforo de vencimientos */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        {semaforo.map((s) => {
-          const Icono = ICONO_ESTADO[s.estado];
-          const meta = SEMAFORO[s.estado];
-          return (
-            <Card key={s.estado}>
-              <CardContent className="flex items-center gap-4 p-5">
-                <span
-                  className="grid size-12 place-items-center rounded-xl"
-                  style={{ backgroundColor: `${meta.color}1a`, color: meta.color }}
-                >
-                  <Icono className="size-6" />
-                </span>
-                <div>
-                  <p className="text-2xl font-bold" style={{ color: meta.color }}>
-                    {s.valor}
-                  </p>
-                  <p className="text-sm text-muted-foreground">{meta.etiqueta}</p>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
+      {/* Gráficos — fila 1: semáforo (pie) + valor por medicamento (barras) */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Card className="lg:col-span-1">
+          <CardContent className="p-5">
+            <GraficoReporteVista grafico={graficos.semaforo} />
+          </CardContent>
+        </Card>
+        <Card className="lg:col-span-2">
+          <CardContent className="p-5">
+            <GraficoReporteVista grafico={graficos.valorMedicamento} />
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Gráficos — fila 2: movimientos por tipo + próximos a vencer por mes */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardContent className="p-5">
+            <GraficoReporteVista grafico={graficos.movimientos} />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-5">
+            <GraficoReporteVista grafico={graficos.vencimientosMes} />
+          </CardContent>
+        </Card>
       </div>
 
       {/* Próximos a vencer */}
@@ -130,9 +132,7 @@ export default async function DashboardPage() {
                     <tr key={lote.id} className="border-b border-border/60">
                       <td className="py-2 font-mono text-xs">{lote.codigo}</td>
                       <td className="py-2">{lote.medicamento.nombreComercial}</td>
-                      <td className="py-2">
-                        {lote.fechaVencimiento.toLocaleDateString("es-PE")}
-                      </td>
+                      <td className="py-2">{lote.fechaVencimiento.toLocaleDateString("es-PE")}</td>
                       <td className="py-2">{lote.diasRestantes ?? "—"}</td>
                       <td className="py-2">
                         <EstadoBadge estado={lote.estadoVencimiento} />

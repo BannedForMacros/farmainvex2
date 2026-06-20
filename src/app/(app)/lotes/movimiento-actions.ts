@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireRol } from "@/lib/session";
 import { evaluarLotePorId } from "@/services/vencimientos.service";
@@ -96,4 +97,103 @@ export async function registrarMovimiento(
   revalidatePath("/dashboard");
   revalidatePath("/vencimientos");
   return { ok: true };
+}
+
+function revalidarMovimientos() {
+  revalidatePath("/lotes");
+  revalidatePath("/inventario");
+  revalidatePath("/salidas");
+  revalidatePath("/dashboard");
+  revalidatePath("/vencimientos");
+}
+
+// ----- Salida con varios lotes (una guía/dispatch con múltiples ítems) -----
+
+const TIPOS_SALIDA = ["SALIDA", "TRASLADO", "BAJA"] as const;
+
+const lineaSalidaSchema = z.object({
+  loteId: z.string().min(1),
+  cantidad: z.coerce.number().int().positive(),
+  motivo: z.string().trim().max(120).optional(),
+});
+
+const salidaSchema = z.object({
+  tipo: z.enum(TIPOS_SALIDA),
+  destino: z.string().trim().max(120).optional(),
+  documentoRef: z.string().trim().max(60).optional(),
+  recibidoPor: z.string().trim().max(120).optional(),
+  fecha: z.string().optional(),
+  lineas: z.array(lineaSalidaSchema).min(1, "Agrega al menos un lote."),
+});
+
+export async function registrarSalida(
+  _prev: EstadoMovimiento,
+  formData: FormData,
+): Promise<EstadoMovimiento> {
+  const session = await requireRol(["ADMIN", "FARMACEUTICO", "SUPERVISOR"]);
+
+  let lineasRaw: unknown;
+  try {
+    lineasRaw = JSON.parse(String(formData.get("lineas") ?? "[]"));
+  } catch {
+    return { error: "No se pudieron leer los lotes de la salida." };
+  }
+
+  const parsed = salidaSchema.safeParse({
+    tipo: formData.get("tipo"),
+    destino: (formData.get("destino") as string) || undefined,
+    documentoRef: (formData.get("documentoRef") as string) || undefined,
+    recibidoPor: (formData.get("recibidoPor") as string) || undefined,
+    fecha: (formData.get("fecha") as string) || undefined,
+    lineas: lineasRaw,
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Datos de la salida inválidos." };
+  }
+
+  const { tipo, destino, documentoRef, recibidoPor, fecha, lineas } = parsed.data;
+
+  const ids = [...new Set(lineas.map((l) => l.loteId))];
+  const lotes = await prisma.lote.findMany({ where: { id: { in: ids } } });
+  const mapa = new Map(lotes.map((l) => [l.id, l]));
+
+  // Valida el stock de forma acumulada (un mismo lote puede repetirse en líneas).
+  const restante = new Map(lotes.map((l) => [l.id, l.cantidad]));
+  for (const linea of lineas) {
+    const lote = mapa.get(linea.loteId);
+    if (!lote) return { error: "Un lote seleccionado no existe." };
+    const r = calcularNuevoStock(tipo, restante.get(linea.loteId)!, linea.cantidad);
+    if (!r.ok) return { error: `${lote.codigo}: ${r.error}` };
+    restante.set(linea.loteId, r.nuevoStock);
+  }
+
+  const fechaMovimiento = parseFechaMovimiento(fecha);
+
+  const ops = [
+    ...lineas.map((linea) =>
+      prisma.movimientoFarmaceutico.create({
+        data: {
+          loteId: linea.loteId,
+          tipo,
+          cantidad: linea.cantidad,
+          motivo: linea.motivo || null,
+          destino: destino || null,
+          documentoRef: documentoRef || null,
+          recibidoPor: recibidoPor || null,
+          usuarioId: session.user.id,
+          ...(fechaMovimiento ? { fecha: fechaMovimiento } : {}),
+        },
+      }),
+    ),
+    ...[...restante.entries()].map(([id, nuevo]) =>
+      prisma.lote.update({ where: { id }, data: { cantidad: nuevo } }),
+    ),
+  ];
+  await prisma.$transaction(ops);
+
+  for (const id of ids) await evaluarLotePorId(id);
+
+  revalidarMovimientos();
+  redirect("/salidas");
 }
