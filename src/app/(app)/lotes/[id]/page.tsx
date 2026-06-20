@@ -9,9 +9,11 @@ import {
   Building2,
   History,
   BellRing,
+  Coins,
+  ArrowRightLeft,
 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { fechaLarga, fechaHora, textoDiasRestantes } from "@/lib/format";
+import { fechaLarga, fechaHora, textoDiasRestantes, moneda } from "@/lib/format";
 import {
   ETIQUETA_ESTADO_LOTE,
   ETIQUETA_TIPO_MOVIMIENTO,
@@ -23,6 +25,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dato } from "@/components/dato";
 import { EstadoBadge } from "@/components/estado-badge";
+import { RegistrarMovimiento } from "./registrar-movimiento";
 
 export const metadata: Metadata = { title: "Detalle de lote" };
 
@@ -82,6 +85,12 @@ export default async function LoteDetallePage({
               <Dato etiqueta="Cantidad">{lote.cantidad} unidad(es)</Dato>
               <Dato etiqueta="Estado del lote">
                 {ETIQUETA_ESTADO_LOTE[lote.estado]}
+              </Dato>
+              <Dato etiqueta="Costo unitario">{moneda(Number(lote.costoUnitario))}</Dato>
+              <Dato etiqueta="Valor del lote">
+                <span className="font-semibold text-fx-blue">
+                  {moneda(lote.cantidad * Number(lote.costoUnitario))}
+                </span>
               </Dato>
               <Dato etiqueta="Estado sanitario">
                 <EstadoBadge estado={lote.estadoVencimiento} />
@@ -167,6 +176,18 @@ export default async function LoteDetallePage({
           </CardContent>
         </Card>
       </div>
+
+      {/* Registrar entrada/salida */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ArrowRightLeft className="size-4 text-fx-teal" /> Registrar movimiento
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <RegistrarMovimiento loteId={lote.id} stockDisponible={lote.cantidad} />
+        </CardContent>
+      </Card>
 
       {/* Trazabilidad: movimientos */}
       <Card>

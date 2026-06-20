@@ -34,6 +34,15 @@ export function fechaHora(fecha: Date | string | null | undefined): string {
   });
 }
 
+/** S/ 1,234.50 — importe en soles (es-PE). Acepta number, string o null. */
+export function moneda(valor: number | string | null | undefined): string {
+  const n = typeof valor === "string" ? Number(valor) : (valor ?? 0);
+  return (Number.isFinite(n) ? n : 0).toLocaleString(LOCALE, {
+    style: "currency",
+    currency: "PEN",
+  });
+}
+
 /** Texto legible para los días restantes hasta el vencimiento. */
 export function textoDiasRestantes(dias: number | null | undefined): string {
   if (dias === null || dias === undefined) return "—";

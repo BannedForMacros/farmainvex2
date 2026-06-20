@@ -125,6 +125,7 @@ model Lote {
   fechaFabricacion  DateTime
   fechaVencimiento  DateTime
   cantidad          Int         @default(0)
+  costoUnitario     Decimal     @default(0) @db.Decimal(12, 2) // costo de adquisición por unidad (valorización)
   estado            EstadoLote  @default(VIGENTE)
   estadoVencimiento EstadoVencimiento @default(VIGENTE) // recalculado por el motor de reglas
   diasRestantes     Int? // cache del cálculo (Vencimiento − Hoy)
