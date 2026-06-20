@@ -31,10 +31,12 @@ const MOTIVOS: Record<TipoMovimientoStock, string[]> = {
 export function RegistrarMovimientoGlobal({
   lotes,
   establecimientos = [],
+  usuarios = [],
   soloSalidas = false,
 }: {
   lotes: LoteOpcion[];
   establecimientos?: string[];
+  usuarios?: string[];
   soloSalidas?: boolean;
 }) {
   const [estado, action, pendiente] = useActionState(registrarMovimiento, inicial);
@@ -141,21 +143,26 @@ export function RegistrarMovimientoGlobal({
           <>
             <div className="space-y-1.5">
               <Label>Destino</Label>
-              <Input
-                name="destino"
-                list="fx-establecimientos"
-                placeholder="Establecimiento o área (ej. Emergencia)"
-              />
-              <datalist id="fx-establecimientos">
+              <Select name="destino" defaultValue="">
+                <option value="">— Sin destino —</option>
                 {establecimientos.map((e) => (
-                  <option key={e} value={e} />
+                  <option key={e} value={e}>
+                    {e}
+                  </option>
                 ))}
-              </datalist>
+              </Select>
             </div>
 
             <div className="space-y-1.5">
-              <Label>Responsable de recepción</Label>
-              <Input name="recibidoPor" placeholder="Quién recibe en el destino" />
+              <Label>Recibido por</Label>
+              <Select name="recibidoPor" defaultValue="">
+                <option value="">— Sin especificar —</option>
+                {usuarios.map((u) => (
+                  <option key={u} value={u}>
+                    {u}
+                  </option>
+                ))}
+              </Select>
             </div>
           </>
         )}

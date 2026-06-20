@@ -1,16 +1,21 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { lotesParaMovimiento, nombresEstablecimientos } from "@/services/inventario.service";
+import {
+  lotesParaMovimiento,
+  nombresEstablecimientos,
+  nombresUsuarios,
+} from "@/services/inventario.service";
 import { Card, CardContent } from "@/components/ui/card";
 import { RegistrarMovimientoGlobal } from "@/components/inventario/registrar-movimiento-global";
 
 export const metadata: Metadata = { title: "Registrar movimiento" };
 
 export default async function NuevoMovimientoPage() {
-  const [lotes, establecimientos] = await Promise.all([
+  const [lotes, establecimientos, usuarios] = await Promise.all([
     lotesParaMovimiento(false),
     nombresEstablecimientos(),
+    nombresUsuarios(),
   ]);
 
   return (
@@ -30,7 +35,11 @@ export default async function NuevoMovimientoPage() {
 
       <Card>
         <CardContent className="p-5">
-          <RegistrarMovimientoGlobal lotes={lotes} establecimientos={establecimientos} />
+          <RegistrarMovimientoGlobal
+            lotes={lotes}
+            establecimientos={establecimientos}
+            usuarios={usuarios}
+          />
         </CardContent>
       </Card>
     </div>
