@@ -5,10 +5,10 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireRol } from "@/lib/session";
 import { evaluarLotePorId } from "@/services/vencimientos.service";
+import { calcularNuevoStock } from "@/domain/inventario";
 
 /** Tipos que el usuario puede registrar desde la UI. ENTRADA suma stock; el resto lo descuentan. */
 const TIPOS_MOVIMIENTO = ["ENTRADA", "SALIDA", "TRASLADO", "BAJA"] as const;
-const TIPOS_SALIDA = new Set(["SALIDA", "TRASLADO", "BAJA"]);
 
 const schema = z.object({
   loteId: z.string().min(1),
@@ -47,16 +47,11 @@ export async function registrarMovimiento(
   const lote = await prisma.lote.findUnique({ where: { id: loteId } });
   if (!lote) return { error: "El lote no existe." };
 
-  const esSalida = TIPOS_SALIDA.has(tipo);
-  if (esSalida && cantidad > lote.cantidad) {
-    return {
-      fieldErrors: {
-        cantidad: `Stock insuficiente: solo hay ${lote.cantidad} unidad(es) disponibles.`,
-      },
-    };
+  const resultado = calcularNuevoStock(tipo, lote.cantidad, cantidad);
+  if (!resultado.ok) {
+    return { fieldErrors: { cantidad: resultado.error! } };
   }
-
-  const nuevaCantidad = esSalida ? lote.cantidad - cantidad : lote.cantidad + cantidad;
+  const nuevaCantidad = resultado.nuevoStock;
 
   await prisma.$transaction([
     prisma.movimientoFarmaceutico.create({
