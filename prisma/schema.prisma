@@ -148,10 +148,13 @@ model MovimientoFarmaceutico {
   loteId    String
   tipo      TipoMovimiento
   cantidad  Int
-  motivo    String?
+  motivo       String? // motivo/categoría del movimiento (dispensación, vencimiento, traslado…)
+  destino      String? // establecimiento o área a donde van las unidades
+  documentoRef String? // N.º de guía de remisión / acta de baja
+  recibidoPor  String? // responsable que recibe en el destino (cadena de custodia)
   usuario   Usuario?       @relation(fields: [usuarioId], references: [id])
   usuarioId String?
-  fecha     DateTime       @default(now())
+  fecha     DateTime       @default(now()) // fecha real del movimiento (editable al registrar)
 
   @@index([loteId, fecha])
 }
