@@ -1,14 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { lotesParaMovimiento } from "@/services/inventario.service";
+import { lotesParaMovimiento, nombresEstablecimientos } from "@/services/inventario.service";
 import { Card, CardContent } from "@/components/ui/card";
 import { RegistrarMovimientoGlobal } from "@/components/inventario/registrar-movimiento-global";
 
 export const metadata: Metadata = { title: "Registrar salida" };
 
 export default async function NuevaSalidaPage() {
-  const lotes = await lotesParaMovimiento(true); // solo lotes con stock
+  const [lotes, establecimientos] = await Promise.all([
+    lotesParaMovimiento(true), // solo lotes con stock
+    nombresEstablecimientos(),
+  ]);
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -27,7 +30,7 @@ export default async function NuevaSalidaPage() {
 
       <Card>
         <CardContent className="p-5">
-          <RegistrarMovimientoGlobal lotes={lotes} soloSalidas />
+          <RegistrarMovimientoGlobal lotes={lotes} establecimientos={establecimientos} soloSalidas />
         </CardContent>
       </Card>
     </div>

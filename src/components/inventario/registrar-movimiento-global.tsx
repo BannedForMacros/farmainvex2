@@ -7,7 +7,7 @@ import {
   registrarMovimiento,
   type EstadoMovimiento,
 } from "@/app/(app)/lotes/movimiento-actions";
-import { calcularNuevoStock, type TipoMovimientoStock } from "@/domain/inventario";
+import { calcularNuevoStock, esSalida, type TipoMovimientoStock } from "@/domain/inventario";
 import { ETIQUETA_TIPO_MOVIMIENTO } from "@/lib/enums";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,11 +20,21 @@ const inicial: EstadoMovimiento = {};
 const TODOS: TipoMovimientoStock[] = ["ENTRADA", "SALIDA", "TRASLADO", "BAJA"];
 const SOLO_SALIDA: TipoMovimientoStock[] = ["SALIDA", "TRASLADO", "BAJA"];
 
+/** Motivos sugeridos según el tipo de movimiento (categorías auditables). */
+const MOTIVOS: Record<TipoMovimientoStock, string[]> = {
+  ENTRADA: ["Compra / reposición", "Devolución de área", "Donación", "Ajuste de inventario"],
+  SALIDA: ["Dispensación", "Consumo interno", "Devolución a proveedor"],
+  TRASLADO: ["Traslado entre establecimientos"],
+  BAJA: ["Vencimiento", "Deterioro", "Contaminación", "Retiro sanitario", "Rotura / merma"],
+};
+
 export function RegistrarMovimientoGlobal({
   lotes,
+  establecimientos = [],
   soloSalidas = false,
 }: {
   lotes: LoteOpcion[];
+  establecimientos?: string[];
   soloSalidas?: boolean;
 }) {
   const [estado, action, pendiente] = useActionState(registrarMovimiento, inicial);
@@ -33,6 +43,7 @@ export function RegistrarMovimientoGlobal({
   // El sistema pre-selecciona el lote más urgente (FEFO: el primero de la lista).
   const [loteId, setLoteId] = useState(() => lotes[0]?.id ?? "");
   const [tipo, setTipo] = useState<TipoMovimientoStock>("SALIDA");
+  const [motivo, setMotivo] = useState<string>(MOTIVOS.SALIDA[0]);
   const [cantidad, setCantidad] = useState("");
 
   const tipos = soloSalidas ? SOLO_SALIDA : TODOS;
@@ -40,6 +51,12 @@ export function RegistrarMovimientoGlobal({
   const cant = Number(cantidad);
   const preview =
     lote && Number.isFinite(cant) && cant > 0 ? calcularNuevoStock(tipo, lote.stock, cant) : null;
+  const mostrarDestino = esSalida(tipo); // destino/recepción solo aplican a salidas
+
+  const cambiarTipo = (nuevo: TipoMovimientoStock) => {
+    setTipo(nuevo);
+    setMotivo(MOTIVOS[nuevo][0]); // sugiere el motivo más común del nuevo tipo
+  };
 
   useEffect(() => {
     if (estado.ok) {
@@ -77,7 +94,7 @@ export function RegistrarMovimientoGlobal({
 
         <div className="space-y-1.5">
           <Label>Tipo de movimiento</Label>
-          <Select name="tipo" value={tipo} onChange={(e) => setTipo(e.target.value as TipoMovimientoStock)}>
+          <Select value={tipo} onChange={(e) => cambiarTipo(e.target.value as TipoMovimientoStock)}>
             {tipos.map((t) => (
               <option key={t} value={t}>
                 {ETIQUETA_TIPO_MOVIMIENTO[t]}
@@ -85,6 +102,8 @@ export function RegistrarMovimientoGlobal({
               </option>
             ))}
           </Select>
+          {/* el name="tipo" se envía por un campo oculto para no depender del foco */}
+          <input type="hidden" name="tipo" value={tipo} />
         </div>
 
         <div className="space-y-1.5">
@@ -93,16 +112,57 @@ export function RegistrarMovimientoGlobal({
             type="number"
             name="cantidad"
             min={1}
-            max={tipo !== "ENTRADA" ? lote?.stock : undefined}
+            max={mostrarDestino ? lote?.stock : undefined}
             value={cantidad}
             onChange={(e) => setCantidad(e.target.value)}
             placeholder="0"
           />
         </div>
 
-        <div className="space-y-1.5 sm:col-span-2">
+        <div className="space-y-1.5">
           <Label>Motivo</Label>
-          <Input name="motivo" placeholder="Opcional (ej. dispensación a paciente)" />
+          <Select name="motivo" value={motivo} onChange={(e) => setMotivo(e.target.value)}>
+            <option value="">— Sin especificar —</option>
+            {MOTIVOS[tipo].map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
+          </Select>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label>Fecha del movimiento</Label>
+          <Input type="date" name="fecha" />
+          <p className="text-xs text-muted-foreground">Vacío = hoy.</p>
+        </div>
+
+        {mostrarDestino && (
+          <>
+            <div className="space-y-1.5">
+              <Label>Destino</Label>
+              <Input
+                name="destino"
+                list="fx-establecimientos"
+                placeholder="Establecimiento o área (ej. Emergencia)"
+              />
+              <datalist id="fx-establecimientos">
+                {establecimientos.map((e) => (
+                  <option key={e} value={e} />
+                ))}
+              </datalist>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Responsable de recepción</Label>
+              <Input name="recibidoPor" placeholder="Quién recibe en el destino" />
+            </div>
+          </>
+        )}
+
+        <div className="space-y-1.5 sm:col-span-2">
+          <Label>Documento de referencia</Label>
+          <Input name="documentoRef" placeholder="N.º de guía de remisión / acta de baja (opcional)" />
         </div>
       </div>
 

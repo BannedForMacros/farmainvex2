@@ -16,6 +16,9 @@ export interface MovimientoDetalle {
   tipo: TipoMovimiento;
   cantidad: number;
   motivo: string | null;
+  destino: string | null;
+  documentoRef: string | null;
+  recibidoPor: string | null;
   fecha: Date;
   responsable: string;
 }

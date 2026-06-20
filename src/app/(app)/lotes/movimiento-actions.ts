@@ -14,8 +14,19 @@ const schema = z.object({
   loteId: z.string().min(1),
   tipo: z.enum(TIPOS_MOVIMIENTO),
   cantidad: z.coerce.number().int().positive("La cantidad debe ser mayor a 0"),
-  motivo: z.string().trim().max(200).optional(),
+  motivo: z.string().trim().max(120).optional(),
+  destino: z.string().trim().max(120).optional(),
+  documentoRef: z.string().trim().max(60).optional(),
+  recibidoPor: z.string().trim().max(120).optional(),
+  fecha: z.string().optional(), // yyyy-mm-dd; vacío = ahora
 });
+
+/** Convierte "yyyy-mm-dd" en Date (mediodía local para evitar desfase de zona). */
+function parseFechaMovimiento(valor: string | undefined): Date | undefined {
+  if (!valor) return undefined;
+  const d = new Date(`${valor}T12:00:00`);
+  return Number.isNaN(d.getTime()) ? undefined : d;
+}
 
 export interface EstadoMovimiento {
   ok?: boolean;
@@ -34,6 +45,10 @@ export async function registrarMovimiento(
     tipo: formData.get("tipo"),
     cantidad: formData.get("cantidad"),
     motivo: (formData.get("motivo") as string) || undefined,
+    destino: (formData.get("destino") as string) || undefined,
+    documentoRef: (formData.get("documentoRef") as string) || undefined,
+    recibidoPor: (formData.get("recibidoPor") as string) || undefined,
+    fecha: (formData.get("fecha") as string) || undefined,
   });
 
   if (!parsed.success) {
@@ -42,7 +57,7 @@ export async function registrarMovimiento(
     return { fieldErrors };
   }
 
-  const { loteId, tipo, cantidad, motivo } = parsed.data;
+  const { loteId, tipo, cantidad, motivo, destino, documentoRef, recibidoPor, fecha } = parsed.data;
 
   const lote = await prisma.lote.findUnique({ where: { id: loteId } });
   if (!lote) return { error: "El lote no existe." };
@@ -52,10 +67,21 @@ export async function registrarMovimiento(
     return { fieldErrors: { cantidad: resultado.error! } };
   }
   const nuevaCantidad = resultado.nuevoStock;
+  const fechaMovimiento = parseFechaMovimiento(fecha);
 
   await prisma.$transaction([
     prisma.movimientoFarmaceutico.create({
-      data: { loteId, tipo, cantidad, motivo: motivo || null, usuarioId: session.user.id },
+      data: {
+        loteId,
+        tipo,
+        cantidad,
+        motivo: motivo || null,
+        destino: destino || null,
+        documentoRef: documentoRef || null,
+        recibidoPor: recibidoPor || null,
+        usuarioId: session.user.id,
+        ...(fechaMovimiento ? { fecha: fechaMovimiento } : {}),
+      },
     }),
     prisma.lote.update({ where: { id: loteId }, data: { cantidad: nuevaCantidad } }),
   ]);

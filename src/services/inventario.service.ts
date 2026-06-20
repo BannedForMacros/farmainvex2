@@ -81,6 +81,15 @@ export async function lotesParaMovimiento(soloConStock = false): Promise<LoteOpc
   }));
 }
 
+/** Nombres de establecimientos para sugerir destinos en los movimientos. */
+export async function nombresEstablecimientos(): Promise<string[]> {
+  const ests = await prisma.establecimiento.findMany({
+    select: { nombre: true },
+    orderBy: { nombre: "asc" },
+  });
+  return ests.map((e) => e.nombre);
+}
+
 /** Últimos movimientos de TODOS los lotes (feed de trazabilidad). */
 export async function movimientosRecientes(limite = 12) {
   return prisma.movimientoFarmaceutico.findMany({
