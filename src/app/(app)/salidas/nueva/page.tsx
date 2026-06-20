@@ -6,16 +6,18 @@ import {
   nombresEstablecimientos,
   nombresUsuarios,
 } from "@/services/inventario.service";
+import { clientesParaSelector } from "@/services/cliente.service";
 import { Card, CardContent } from "@/components/ui/card";
 import { RegistrarSalidaForm } from "@/components/salidas/registrar-salida-form";
 
 export const metadata: Metadata = { title: "Registrar salida" };
 
 export default async function NuevaSalidaPage() {
-  const [medicamentos, establecimientos, usuarios] = await Promise.all([
+  const [medicamentos, establecimientos, usuarios, clientes] = await Promise.all([
     medicamentosConLotesDisponibles(),
     nombresEstablecimientos(),
     nombresUsuarios(),
+    clientesParaSelector(),
   ]);
 
   return (
@@ -40,6 +42,7 @@ export default async function NuevaSalidaPage() {
             medicamentos={medicamentos}
             establecimientos={establecimientos}
             usuarios={usuarios}
+            clientes={clientes}
           />
         </CardContent>
       </Card>

@@ -10,6 +10,7 @@ import {
   ETIQUETA_ESTADO_INCIDENCIA,
   ETIQUETA_TIPO_MOVIMIENTO,
   ETIQUETA_TIPO_ALERTA,
+  ETIQUETA_TIPO_DOCUMENTO,
 } from "@/lib/enums";
 
 /** Rango de fechas para filtrar un reporte (ambos extremos opcionales). */

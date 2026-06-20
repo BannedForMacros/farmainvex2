@@ -126,6 +126,7 @@ export function RegistrarSalidaForm({
     <form action={action} className="space-y-6">
       <input type="hidden" name="tipo" value={tipo} />
       <input type="hidden" name="lineas" value={lineasJson} />
+      <input type="hidden" name="clienteId" value={clienteId} />
 
       {/* Cabecera de la salida (compartida) */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -143,28 +144,38 @@ export function RegistrarSalidaForm({
           <Label>Fecha</Label>
           <Input type="date" name="fecha" />
         </div>
-        <div className="space-y-1.5">
-          <Label>Destino</Label>
-          <Select name="destino" defaultValue="">
-            <option value="">— Sin destino —</option>
-            {establecimientos.map((e) => (
-              <option key={e} value={e}>
-                {e}
-              </option>
-            ))}
-          </Select>
-        </div>
-        <div className="space-y-1.5">
-          <Label>Recibido por</Label>
-          <Select name="recibidoPor" defaultValue="">
-            <option value="">— Sin especificar —</option>
-            {usuarios.map((u) => (
-              <option key={u} value={u}>
-                {u}
-              </option>
-            ))}
-          </Select>
-        </div>
+
+        {esVenta ? (
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label>Cliente *</Label>
+            <ClienteSelector clientes={clientes} clienteId={clienteId} onSelect={setClienteId} />
+          </div>
+        ) : (
+          <>
+            <div className="space-y-1.5">
+              <Label>Destino</Label>
+              <Select name="destino" defaultValue="">
+                <option value="">— Sin destino —</option>
+                {establecimientos.map((e) => (
+                  <option key={e} value={e}>
+                    {e}
+                  </option>
+                ))}
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Recibido por</Label>
+              <Select name="recibidoPor" defaultValue="">
+                <option value="">— Sin especificar —</option>
+                {usuarios.map((u) => (
+                  <option key={u} value={u}>
+                    {u}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Detalle: medicamento → lote, cantidad, motivo y documento por línea */}

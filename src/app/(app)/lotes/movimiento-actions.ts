@@ -109,7 +109,7 @@ function revalidarMovimientos() {
 
 // ----- Salida con varios lotes (una guía/dispatch con múltiples ítems) -----
 
-const TIPOS_SALIDA = ["SALIDA", "TRASLADO", "BAJA"] as const;
+const TIPOS_SALIDA = ["SALIDA", "VENTA", "TRASLADO", "BAJA"] as const;
 
 const lineaSalidaSchema = z.object({
   loteId: z.string().min(1),
@@ -122,6 +122,7 @@ const salidaSchema = z.object({
   tipo: z.enum(TIPOS_SALIDA),
   destino: z.string().trim().max(120).optional(),
   recibidoPor: z.string().trim().max(120).optional(),
+  clienteId: z.string().optional(),
   fecha: z.string().optional(),
   lineas: z.array(lineaSalidaSchema).min(1, "Agrega al menos un lote."),
 });
@@ -143,6 +144,7 @@ export async function registrarSalida(
     tipo: formData.get("tipo"),
     destino: (formData.get("destino") as string) || undefined,
     recibidoPor: (formData.get("recibidoPor") as string) || undefined,
+    clienteId: (formData.get("clienteId") as string) || undefined,
     fecha: (formData.get("fecha") as string) || undefined,
     lineas: lineasRaw,
   });
@@ -151,7 +153,11 @@ export async function registrarSalida(
     return { error: parsed.error.issues[0]?.message ?? "Datos de la salida inválidos." };
   }
 
-  const { tipo, destino, recibidoPor, fecha, lineas } = parsed.data;
+  const { tipo, destino, recibidoPor, clienteId, fecha, lineas } = parsed.data;
+
+  if (tipo === "VENTA" && !clienteId) {
+    return { error: "Selecciona el cliente de la venta." };
+  }
 
   const ids = [...new Set(lineas.map((l) => l.loteId))];
   const lotes = await prisma.lote.findMany({ where: { id: { in: ids } } });
@@ -180,6 +186,7 @@ export async function registrarSalida(
           destino: destino || null,
           documentoRef: linea.documentoRef || null,
           recibidoPor: recibidoPor || null,
+          clienteId: clienteId || null,
           usuarioId: session.user.id,
           ...(fechaMovimiento ? { fecha: fechaMovimiento } : {}),
         },
