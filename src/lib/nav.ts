@@ -9,6 +9,8 @@ export type IconoNav =
   | "panel"
   | "medicamentos"
   | "lotes"
+  | "inventario"
+  | "salidas"
   | "vencimientos"
   | "alertas"
   | "supervision"
@@ -27,6 +29,8 @@ export const NAV: ItemNav[] = [
   { href: "/dashboard", etiqueta: "Panel", icono: "panel" },
   { href: "/medicamentos", etiqueta: "Medicamentos", icono: "medicamentos" },
   { href: "/lotes", etiqueta: "Lotes", icono: "lotes" },
+  { href: "/inventario", etiqueta: "Inventario", icono: "inventario" },
+  { href: "/salidas", etiqueta: "Salidas", icono: "salidas" },
   { href: "/vencimientos", etiqueta: "Vencimientos", icono: "vencimientos" },
   { href: "/alertas", etiqueta: "Alertas", icono: "alertas" },
   { href: "/supervision", etiqueta: "Supervisión", icono: "supervision", roles: ["ADMIN", "SUPERVISOR"] },

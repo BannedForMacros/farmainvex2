@@ -65,6 +65,8 @@ export async function registrarMovimiento(
 
   revalidatePath(`/lotes/${loteId}`);
   revalidatePath("/lotes");
+  revalidatePath("/inventario");
+  revalidatePath("/salidas");
   revalidatePath("/dashboard");
   revalidatePath("/vencimientos");
   return { ok: true };

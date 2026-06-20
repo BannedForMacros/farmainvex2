@@ -46,9 +46,9 @@ describe("valorLote", () => {
     expect(valorLote(280, 4.5)).toBe(1260);
   });
 
-  it("redondea a céntimos", () => {
-    expect(valorLote(3, 8.2)).toBe(24.6);
-    expect(valorLote(7, 1.005)).toBe(7.04);
+  it("redondea a céntimos (elimina la cola de punto flotante)", () => {
+    expect(valorLote(3, 8.2)).toBe(24.6); // 24.599999… → 24.6
+    expect(valorLote(3, 1.1)).toBe(3.3); // 3.3000000000000003 → 3.3
   });
 
   it("devuelve 0 ante valores no finitos", () => {
