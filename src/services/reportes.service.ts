@@ -9,7 +9,51 @@ import {
   ETIQUETA_SEVERIDAD,
   ETIQUETA_ESTADO_INCIDENCIA,
   ETIQUETA_TIPO_MOVIMIENTO,
+  ETIQUETA_TIPO_ALERTA,
 } from "@/lib/enums";
+
+/** Rango de fechas para filtrar un reporte (ambos extremos opcionales). */
+export interface FiltroReporte {
+  desde?: Date;
+  hasta?: Date;
+}
+
+/** Una barra/porción del gráfico de un reporte. */
+export interface SerieGrafico {
+  nombre: string;
+  valor: number;
+}
+
+/** Datos para el gráfico interactivo (recharts) de un reporte. */
+export interface GraficoReporte {
+  tipo: "bar" | "pie";
+  titulo: string;
+  series: SerieGrafico[];
+}
+
+/** Convierte "YYYY-MM-DD" (del input date) en Date local, o undefined. */
+export function parseFecha(valor: string | null | undefined): Date | undefined {
+  if (!valor) return undefined;
+  const d = new Date(`${valor}T00:00:00`);
+  return Number.isNaN(d.getTime()) ? undefined : d;
+}
+
+/**
+ * Construye el filtro de fecha de Prisma a partir del rango. `hasta` se
+ * extiende al final del día para que sea inclusivo. Devuelve undefined si no
+ * hay rango (Prisma ignora la condición).
+ */
+function rangoFecha(filtro: FiltroReporte): { gte?: Date; lte?: Date } | undefined {
+  if (!filtro.desde && !filtro.hasta) return undefined;
+  const rango: { gte?: Date; lte?: Date } = {};
+  if (filtro.desde) rango.gte = filtro.desde;
+  if (filtro.hasta) {
+    const fin = new Date(filtro.hasta);
+    fin.setHours(23, 59, 59, 999);
+    rango.lte = fin;
+  }
+  return rango;
+}
 
 export type TipoReporte =
   | "medicamentos"
@@ -39,10 +83,15 @@ export function esTipoReporteValido(tipo: string | null): tipo is TipoReporte {
   return REPORTES.some((r) => r.tipo === tipo);
 }
 
-export async function obtenerDatosReporte(tipo: TipoReporte): Promise<DatosReporte> {
+export async function obtenerDatosReporte(
+  tipo: TipoReporte,
+  filtro: FiltroReporte = {},
+): Promise<DatosReporte> {
+  const fecha = rangoFecha(filtro);
   switch (tipo) {
     case "medicamentos": {
       const datos = await prisma.medicamento.findMany({
+        where: { creadoEn: fecha },
         include: { _count: { select: { lotes: true } } },
         orderBy: { nombreComercial: "asc" },
       });
@@ -73,8 +122,12 @@ export async function obtenerDatosReporte(tipo: TipoReporte): Promise<DatosRepor
       const datos = await prisma.lote.findMany({
         where:
           tipo === "proximos"
-            ? { estadoVencimiento: { in: ["PREVENTIVA", "CRITICO"] }, estado: { not: "RETIRADO" } }
-            : undefined,
+            ? {
+                estadoVencimiento: { in: ["PREVENTIVA", "CRITICO"] },
+                estado: { not: "RETIRADO" },
+                fechaVencimiento: fecha,
+              }
+            : { creadoEn: fecha },
         include: { medicamento: true },
         orderBy: { diasRestantes: "asc" },
       });
@@ -106,6 +159,7 @@ export async function obtenerDatosReporte(tipo: TipoReporte): Promise<DatosRepor
 
     case "alertas": {
       const datos = await prisma.alerta.findMany({
+        where: { creadoEn: fecha },
         include: { lote: true },
         orderBy: { creadoEn: "desc" },
       });
@@ -121,7 +175,7 @@ export async function obtenerDatosReporte(tipo: TipoReporte): Promise<DatosRepor
           { header: "Estado", key: "estado", width: 16 },
         ],
         filas: datos.map((a) => ({
-          tipo: a.tipo,
+          tipo: ETIQUETA_TIPO_ALERTA[a.tipo],
           severidad: ETIQUETA_SEVERIDAD[a.severidad],
           mensaje: a.mensaje,
           lote: a.lote?.codigo ?? "—",
@@ -133,6 +187,7 @@ export async function obtenerDatosReporte(tipo: TipoReporte): Promise<DatosRepor
 
     case "historial": {
       const datos = await prisma.movimientoFarmaceutico.findMany({
+        where: { fecha },
         include: { lote: { include: { medicamento: true } }, usuario: true },
         orderBy: { fecha: "desc" },
       });
@@ -162,6 +217,7 @@ export async function obtenerDatosReporte(tipo: TipoReporte): Promise<DatosRepor
 
     case "incidencias": {
       const datos = await prisma.incidencia.findMany({
+        where: { creadoEn: fecha },
         include: { lote: true },
         orderBy: { creadoEn: "desc" },
       });
@@ -184,6 +240,93 @@ export async function obtenerDatosReporte(tipo: TipoReporte): Promise<DatosRepor
           lote: i.lote?.codigo ?? "—",
           fecha: fechaHora(i.creadoEn),
         })),
+      };
+    }
+  }
+}
+
+/**
+ * Calcula los datos agregados para el gráfico interactivo de cada reporte.
+ * Usa `groupBy` (no carga todas las filas) y respeta el mismo filtro de fechas.
+ */
+export async function obtenerGraficoReporte(
+  tipo: TipoReporte,
+  filtro: FiltroReporte = {},
+): Promise<GraficoReporte> {
+  const fecha = rangoFecha(filtro);
+  const ordenar = (s: SerieGrafico[]) => s.sort((a, b) => b.valor - a.valor);
+
+  switch (tipo) {
+    case "medicamentos": {
+      const g = await prisma.medicamento.groupBy({
+        by: ["laboratorio"],
+        where: { creadoEn: fecha },
+        _count: { _all: true },
+      });
+      return {
+        tipo: "bar",
+        titulo: "Medicamentos por laboratorio",
+        series: ordenar(g.map((x) => ({ nombre: x.laboratorio, valor: x._count._all }))).slice(0, 8),
+      };
+    }
+
+    case "lotes":
+    case "proximos": {
+      const g = await prisma.lote.groupBy({
+        by: ["estadoVencimiento"],
+        where:
+          tipo === "proximos"
+            ? {
+                estadoVencimiento: { in: ["PREVENTIVA", "CRITICO"] },
+                estado: { not: "RETIRADO" },
+                fechaVencimiento: fecha,
+              }
+            : { creadoEn: fecha },
+        _count: { _all: true },
+      });
+      return {
+        tipo: "pie",
+        titulo: "Lotes por estado de vencimiento",
+        series: g.map((x) => ({ nombre: SEMAFORO[x.estadoVencimiento].etiqueta, valor: x._count._all })),
+      };
+    }
+
+    case "alertas": {
+      const g = await prisma.alerta.groupBy({
+        by: ["tipo"],
+        where: { creadoEn: fecha },
+        _count: { _all: true },
+      });
+      return {
+        tipo: "bar",
+        titulo: "Alertas por tipo",
+        series: ordenar(g.map((x) => ({ nombre: ETIQUETA_TIPO_ALERTA[x.tipo], valor: x._count._all }))),
+      };
+    }
+
+    case "historial": {
+      const g = await prisma.movimientoFarmaceutico.groupBy({
+        by: ["tipo"],
+        where: { fecha },
+        _count: { _all: true },
+      });
+      return {
+        tipo: "bar",
+        titulo: "Movimientos por tipo",
+        series: ordenar(g.map((x) => ({ nombre: ETIQUETA_TIPO_MOVIMIENTO[x.tipo], valor: x._count._all }))),
+      };
+    }
+
+    case "incidencias": {
+      const g = await prisma.incidencia.groupBy({
+        by: ["estado"],
+        where: { creadoEn: fecha },
+        _count: { _all: true },
+      });
+      return {
+        tipo: "bar",
+        titulo: "Incidencias por estado",
+        series: ordenar(g.map((x) => ({ nombre: ETIQUETA_ESTADO_INCIDENCIA[x.estado], valor: x._count._all }))),
       };
     }
   }

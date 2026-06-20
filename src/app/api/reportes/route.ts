@@ -5,6 +5,7 @@ import {
   generarPDF,
   generarExcel,
   esTipoReporteValido,
+  parseFecha,
 } from "@/services/reportes.service";
 
 export const runtime = "nodejs";
@@ -24,7 +25,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Tipo de reporte inválido" }, { status: 400 });
   }
 
-  const datos = await obtenerDatosReporte(tipo);
+  const filtro = {
+    desde: parseFecha(req.nextUrl.searchParams.get("desde")),
+    hasta: parseFecha(req.nextUrl.searchParams.get("hasta")),
+  };
+  const datos = await obtenerDatosReporte(tipo, filtro);
 
   if (formato === "excel") {
     const buffer = await generarExcel(datos);
