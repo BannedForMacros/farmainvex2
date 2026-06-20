@@ -21,9 +21,11 @@ const OPCIONES = [
 export function RegistrarMovimiento({
   loteId,
   stockDisponible,
+  onSuccess,
 }: {
   loteId: string;
   stockDisponible: number;
+  onSuccess?: () => void;
 }) {
   const [estado, action, pendiente] = useActionState(registrarMovimiento, inicial);
   const formRef = useRef<HTMLFormElement>(null);
@@ -33,10 +35,11 @@ export function RegistrarMovimiento({
     if (estado.ok) {
       toast.success("Movimiento registrado");
       formRef.current?.reset();
+      onSuccess?.();
     } else if (estado.error) {
       toast.error(estado.error);
     }
-  }, [estado]);
+  }, [estado, onSuccess]);
 
   return (
     <form ref={formRef} action={action} className="space-y-4">

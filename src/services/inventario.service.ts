@@ -99,3 +99,24 @@ export async function salidasRecientes(limite = 40) {
     take: limite,
   });
 }
+
+/** Indicadores para la cabecera de la página de salidas. */
+export async function resumenSalidas(): Promise<{
+  totalSalidas: number;
+  unidadesDispensadas: number;
+  lotesDisponibles: number;
+}> {
+  const [agg, lotesDisponibles] = await Promise.all([
+    prisma.movimientoFarmaceutico.aggregate({
+      where: { tipo: { in: [...TIPOS_SALIDA] } },
+      _count: { _all: true },
+      _sum: { cantidad: true },
+    }),
+    prisma.lote.count({ where: { estado: { not: "RETIRADO" }, cantidad: { gt: 0 } } }),
+  ]);
+  return {
+    totalSalidas: agg._count._all,
+    unidadesDispensadas: agg._sum.cantidad ?? 0,
+    lotesDisponibles,
+  };
+}
