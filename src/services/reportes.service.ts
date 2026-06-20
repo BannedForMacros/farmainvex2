@@ -8,6 +8,7 @@ import {
   ETIQUETA_ESTADO_LOTE,
   ETIQUETA_SEVERIDAD,
   ETIQUETA_ESTADO_INCIDENCIA,
+  ETIQUETA_TIPO_MOVIMIENTO,
 } from "@/lib/enums";
 
 export type TipoReporte =
@@ -15,6 +16,7 @@ export type TipoReporte =
   | "lotes"
   | "proximos"
   | "alertas"
+  | "historial"
   | "incidencias";
 
 export const REPORTES: { tipo: TipoReporte; titulo: string; descripcion: string }[] = [
@@ -22,6 +24,7 @@ export const REPORTES: { tipo: TipoReporte; titulo: string; descripcion: string 
   { tipo: "lotes", titulo: "Control de lotes", descripcion: "Todos los lotes con su estado y vencimiento." },
   { tipo: "proximos", titulo: "Próximos a vencer", descripcion: "Lotes en alerta preventiva o crítica." },
   { tipo: "alertas", titulo: "Alertas sanitarias", descripcion: "Alertas generadas por el sistema." },
+  { tipo: "historial", titulo: "Historial farmacéutico", descripcion: "Movimientos de entrada, salida y trazabilidad de lotes." },
   { tipo: "incidencias", titulo: "Incidencias", descripcion: "Incidencias sanitarias y su estado." },
 ];
 
@@ -124,6 +127,35 @@ export async function obtenerDatosReporte(tipo: TipoReporte): Promise<DatosRepor
           lote: a.lote?.codigo ?? "—",
           fecha: fechaHora(a.creadoEn),
           estado: a.resuelta ? "Resuelta" : a.leida ? "Leída" : "Pendiente",
+        })),
+      };
+    }
+
+    case "historial": {
+      const datos = await prisma.movimientoFarmaceutico.findMany({
+        include: { lote: { include: { medicamento: true } }, usuario: true },
+        orderBy: { fecha: "desc" },
+      });
+      return {
+        tipo,
+        titulo: "Historial farmacéutico",
+        columnas: [
+          { header: "Fecha", key: "fecha", width: 20 },
+          { header: "Lote", key: "lote", width: 16 },
+          { header: "Medicamento", key: "medicamento", width: 28 },
+          { header: "Movimiento", key: "movimiento", width: 16 },
+          { header: "Cantidad", key: "cantidad", width: 12 },
+          { header: "Motivo", key: "motivo", width: 30 },
+          { header: "Responsable", key: "responsable", width: 24 },
+        ],
+        filas: datos.map((m) => ({
+          fecha: fechaHora(m.fecha),
+          lote: m.lote.codigo,
+          medicamento: m.lote.medicamento.nombreComercial,
+          movimiento: ETIQUETA_TIPO_MOVIMIENTO[m.tipo],
+          cantidad: m.cantidad,
+          motivo: m.motivo ?? "—",
+          responsable: m.usuario?.nombre ?? "—",
         })),
       };
     }

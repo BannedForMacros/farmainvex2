@@ -2,6 +2,7 @@ import type {
   EstadoLote,
   TipoMovimiento,
   TipoEstablecimiento,
+  TipoAlerta,
   Severidad,
   EstadoIncidencia,
 } from "@/generated/prisma/enums";
@@ -28,6 +29,14 @@ export const ETIQUETA_TIPO_ESTABLECIMIENTO: Record<TipoEstablecimiento, string> 
   CENTRO_DISTRIBUCION: "Centro de distribución",
   CLINICA: "Clínica",
   ALMACEN_MEDICO: "Almacén médico",
+};
+
+export const ETIQUETA_TIPO_ALERTA: Record<TipoAlerta, string> = {
+  PROXIMO_VENCER: "Próximo a vencer",
+  LOTE_OBSERVADO: "Lote observado",
+  RIESGO_ALMACENAMIENTO: "Riesgo de almacenamiento",
+  INCIDENCIA_SANITARIA: "Incidencia sanitaria",
+  PRODUCTO_VENCIDO: "Producto vencido",
 };
 
 export const ETIQUETA_SEVERIDAD: Record<Severidad, string> = {
