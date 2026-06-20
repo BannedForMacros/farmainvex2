@@ -9,8 +9,6 @@ import {
   Building2,
   History,
   BellRing,
-  Coins,
-  ArrowRightLeft,
 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { fechaLarga, fechaHora, textoDiasRestantes, moneda } from "@/lib/format";
@@ -25,7 +23,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dato } from "@/components/dato";
 import { EstadoBadge } from "@/components/estado-badge";
-import { RegistrarMovimiento } from "./registrar-movimiento";
+import { RegistrarMovimientoModal } from "./registrar-movimiento-modal";
 
 export const metadata: Metadata = { title: "Detalle de lote" };
 
@@ -65,9 +63,12 @@ export default async function LoteDetallePage({
           </div>
           <p className="text-sm text-muted-foreground">{lote.medicamento.nombreComercial}</p>
         </div>
-        <span className="rounded-lg bg-secondary px-3 py-1 text-sm font-medium text-secondary-foreground">
-          {textoDiasRestantes(lote.diasRestantes)}
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="rounded-lg bg-secondary px-3 py-1 text-sm font-medium text-secondary-foreground">
+            {textoDiasRestantes(lote.diasRestantes)}
+          </span>
+          <RegistrarMovimientoModal loteId={lote.id} stockDisponible={lote.cantidad} />
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -176,18 +177,6 @@ export default async function LoteDetallePage({
           </CardContent>
         </Card>
       </div>
-
-      {/* Registrar entrada/salida */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ArrowRightLeft className="size-4 text-fx-teal" /> Registrar movimiento
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <RegistrarMovimiento loteId={lote.id} stockDisponible={lote.cantidad} />
-        </CardContent>
-      </Card>
 
       {/* Trazabilidad: movimientos */}
       <Card>
