@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import {
-  lotesParaMovimiento,
+  medicamentosConLotesDisponibles,
   nombresEstablecimientos,
   nombresUsuarios,
 } from "@/services/inventario.service";
@@ -12,14 +12,14 @@ import { RegistrarSalidaForm } from "@/components/salidas/registrar-salida-form"
 export const metadata: Metadata = { title: "Registrar salida" };
 
 export default async function NuevaSalidaPage() {
-  const [lotes, establecimientos, usuarios] = await Promise.all([
-    lotesParaMovimiento(true), // solo lotes con stock
+  const [medicamentos, establecimientos, usuarios] = await Promise.all([
+    medicamentosConLotesDisponibles(),
     nombresEstablecimientos(),
     nombresUsuarios(),
   ]);
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="space-y-6">
       <div className="space-y-1">
         <Link
           href="/salidas"
@@ -29,15 +29,15 @@ export default async function NuevaSalidaPage() {
         </Link>
         <h1 className="text-2xl font-bold">Registrar salida</h1>
         <p className="text-sm text-muted-foreground">
-          Una salida puede incluir varios lotes. El sistema prioriza los próximos a vencer (FEFO)
-          y valida el stock de cada uno.
+          Elige el medicamento y su lote (FEFO). Una salida puede incluir varios ítems, cada uno
+          con su propio documento. Usa 👁 para ver los lotes disponibles.
         </p>
       </div>
 
       <Card>
         <CardContent className="p-5">
           <RegistrarSalidaForm
-            lotes={lotes}
+            medicamentos={medicamentos}
             establecimientos={establecimientos}
             usuarios={usuarios}
           />

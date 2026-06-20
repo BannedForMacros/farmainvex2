@@ -178,7 +178,7 @@ export async function registrarSalida(
           cantidad: linea.cantidad,
           motivo: linea.motivo || null,
           destino: destino || null,
-          documentoRef: documentoRef || null,
+          documentoRef: linea.documentoRef || null,
           recibidoPor: recibidoPor || null,
           usuarioId: session.user.id,
           ...(fechaMovimiento ? { fecha: fechaMovimiento } : {}),
