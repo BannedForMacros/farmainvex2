@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -35,13 +36,14 @@ export function Modal({ trigger, title, description, children, contentClassName 
   return (
     <>
       {trigger(() => setOpen(true))}
-      {open && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4">
-          <div
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-            onClick={close}
-            aria-hidden
-          />
+      {open &&
+        createPortal(
+          <div className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4">
+            <div
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+              onClick={close}
+              aria-hidden
+            />
           <div
             role="dialog"
             aria-modal="true"
@@ -70,8 +72,9 @@ export function Modal({ trigger, title, description, children, contentClassName 
               {typeof children === "function" ? children(close) : children}
             </div>
           </div>
-        </div>
-      )}
+        </div>,
+          document.body,
+        )}
     </>
   );
 }

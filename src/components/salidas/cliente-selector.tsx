@@ -67,7 +67,7 @@ export function ClienteSelector({
         modo === "crear" ? (
           <CrearClienteForm
             onCreated={(c) => {
-              setLista((prev) => [c, ...prev]);
+              setLista((prev) => (prev.some((x) => x.id === c.id) ? prev : [c, ...prev]));
               onSelect(c.id);
               setModo("buscar");
               close();

@@ -7,19 +7,47 @@ import { requireRol } from "@/lib/session";
 import {
   consultarDocumento,
   validarFormatoDocumento,
-  type ResultadoConsulta,
+  type DatosDocumento,
 } from "@/services/decolecta.service";
 import type { ClienteLite } from "@/services/cliente.service";
 
 const ROLES = ["ADMIN", "SUPERVISOR", "FARMACEUTICO"] as const;
 
-/** Consulta el documento en Decolecta (para el formulario de creación). */
+export type BusquedaCliente =
+  | { estado: "registrado"; cliente: ClienteLite }
+  | { estado: "encontrado"; datos: DatosDocumento }
+  | { estado: "no_encontrado"; error: string };
+
+/**
+ * Para el formulario de creación: primero comprueba si el documento YA está
+ * registrado (avisa con su razón social); si no, lo consulta en Decolecta.
+ */
 export async function buscarDocumentoCliente(
   tipo: "RUC" | "DNI",
   numero: string,
-): Promise<ResultadoConsulta> {
+): Promise<BusquedaCliente> {
   await requireRol([...ROLES]);
-  return consultarDocumento(tipo, numero);
+  const num = numero.trim();
+
+  const errFormato = validarFormatoDocumento(tipo, num);
+  if (errFormato) return { estado: "no_encontrado", error: errFormato };
+
+  const existente = await prisma.cliente.findUnique({ where: { numeroDocumento: num } });
+  if (existente) {
+    return {
+      estado: "registrado",
+      cliente: {
+        id: existente.id,
+        tipoDocumento: existente.tipoDocumento as "RUC" | "DNI",
+        numeroDocumento: existente.numeroDocumento,
+        nombre: existente.nombre,
+      },
+    };
+  }
+
+  const consulta = await consultarDocumento(tipo, num);
+  if (consulta.ok) return { estado: "encontrado", datos: consulta.datos };
+  return { estado: "no_encontrado", error: consulta.error };
 }
 
 export interface ResultadoCliente {
@@ -45,7 +73,7 @@ export async function crearCliente(input: {
   if (errFormato) return { ok: false, error: errFormato };
 
   const existe = await prisma.cliente.findUnique({ where: { numeroDocumento: numero } });
-  if (existe) return { ok: false, error: "Ya existe un cliente con ese documento." };
+  if (existe) return { ok: false, error: `El ${tipo} ${numero} ya está registrado: ${existe.nombre}.` };
 
   const consulta = await consultarDocumento(tipo, numero);
 

@@ -2,13 +2,23 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { CircleAlert, TriangleAlert, CircleCheck } from "lucide-react";
 import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
 import { LoginForm } from "./login-form";
 
 export const metadata: Metadata = { title: "Iniciar sesión" };
 
 export default async function LoginPage() {
   const session = await auth();
-  if (session?.user) redirect("/dashboard");
+  // Solo redirige si la sesión es válida EN BD (no solo el JWT). Así una sesión
+  // huérfana (usuario borrado / re-seed) no provoca un bucle login↔dashboard:
+  // se muestra el formulario para volver a iniciar sesión.
+  if (session?.user?.id) {
+    const usuario = await prisma.usuario.findUnique({
+      where: { id: session.user.id },
+      select: { id: true, activo: true },
+    });
+    if (usuario?.activo) redirect("/dashboard");
+  }
 
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
