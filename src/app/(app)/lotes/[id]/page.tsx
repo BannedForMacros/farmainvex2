@@ -39,12 +39,14 @@ export default async function LoteDetallePage({
     include: {
       medicamento: true,
       establecimiento: true,
-      movimientos: { include: { usuario: true }, orderBy: { fecha: "desc" } },
+      movimientos: { include: { usuario: true, proveedor: true }, orderBy: { fecha: "desc" } },
       alertas: { orderBy: { creadoEn: "desc" } },
     },
   });
 
   if (!lote) notFound();
+
+  const entrada = lote.movimientos.find((m) => m.tipo === "ENTRADA");
 
   return (
     <div className="space-y-6">
@@ -103,6 +105,7 @@ export default async function LoteDetallePage({
                   <Badge tono="success">No</Badge>
                 )}
               </Dato>
+              <Dato etiqueta="Proveedor">{entrada?.proveedor?.nombre ?? "—"}</Dato>
             </dl>
           </CardContent>
         </Card>

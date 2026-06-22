@@ -6,16 +6,18 @@ import {
   nombresEstablecimientos,
   nombresUsuarios,
 } from "@/services/inventario.service";
+import { proveedoresParaSelector } from "@/services/proveedor.service";
 import { Card, CardContent } from "@/components/ui/card";
 import { RegistrarMovimientoGlobal } from "@/components/inventario/registrar-movimiento-global";
 
 export const metadata: Metadata = { title: "Registrar movimiento" };
 
 export default async function NuevoMovimientoPage() {
-  const [lotes, establecimientos, usuarios] = await Promise.all([
+  const [lotes, establecimientos, usuarios, proveedores] = await Promise.all([
     lotesParaMovimiento(false),
     nombresEstablecimientos(),
     nombresUsuarios(),
+    proveedoresParaSelector(),
   ]);
 
   return (
@@ -39,6 +41,7 @@ export default async function NuevoMovimientoPage() {
             lotes={lotes}
             establecimientos={establecimientos}
             usuarios={usuarios}
+            proveedores={proveedores}
           />
         </CardContent>
       </Card>

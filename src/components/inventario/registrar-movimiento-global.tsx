@@ -14,7 +14,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { EstadoBadge } from "@/components/estado-badge";
+import { EntidadSelector } from "@/components/documento/entidad-selector";
+import { buscarDocumentoProveedor, crearProveedor } from "@/app/(app)/proveedores/actions";
 import type { LoteOpcion } from "@/services/inventario.service";
+import type { EntidadLite } from "@/lib/documento-entidad";
 
 const inicial: EstadoMovimiento = {};
 const TODOS: TipoMovimientoStock[] = ["ENTRADA", "SALIDA", "TRASLADO", "BAJA"];
@@ -33,11 +36,13 @@ export function RegistrarMovimientoGlobal({
   lotes,
   establecimientos = [],
   usuarios = [],
+  proveedores = [],
   soloSalidas = false,
 }: {
   lotes: LoteOpcion[];
   establecimientos?: string[];
   usuarios?: string[];
+  proveedores?: EntidadLite[];
   soloSalidas?: boolean;
 }) {
   const [estado, action, pendiente] = useActionState(registrarMovimiento, inicial);
@@ -48,6 +53,7 @@ export function RegistrarMovimientoGlobal({
   const [tipo, setTipo] = useState<TipoMovimientoStock>("SALIDA");
   const [motivo, setMotivo] = useState<string>(MOTIVOS.SALIDA[0]);
   const [cantidad, setCantidad] = useState("");
+  const [proveedorId, setProveedorId] = useState("");
 
   const tipos = soloSalidas ? SOLO_SALIDA : TODOS;
   const lote = lotes.find((l) => l.id === loteId);
@@ -82,6 +88,7 @@ export function RegistrarMovimientoGlobal({
   return (
     <form ref={formRef} action={action} className="space-y-4">
       <input type="hidden" name="loteId" value={loteId} />
+      <input type="hidden" name="proveedorId" value={proveedorId} />
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5 sm:col-span-2">
@@ -139,6 +146,20 @@ export function RegistrarMovimientoGlobal({
           <Input type="date" name="fecha" />
           <p className="text-xs text-muted-foreground">Vacío = hoy.</p>
         </div>
+
+        {tipo === "ENTRADA" && (
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label>Proveedor (entrada)</Label>
+            <EntidadSelector
+              entidades={proveedores}
+              value={proveedorId}
+              onSelect={setProveedorId}
+              acciones={{ buscar: buscarDocumentoProveedor, crear: crearProveedor }}
+              noun="proveedor"
+              nounCapital="Proveedor"
+            />
+          </div>
+        )}
 
         {mostrarDestino && (
           <>

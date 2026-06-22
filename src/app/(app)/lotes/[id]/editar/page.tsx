@@ -51,6 +51,7 @@ export default async function EditarLotePage({ params }: { params: Promise<{ id:
           <LoteForm
             medicamentos={medicamentos}
             establecimientos={establecimientos}
+            proveedores={proveedores}
             lote={{
               id: lote.id,
               medicamentoId: lote.medicamentoId,

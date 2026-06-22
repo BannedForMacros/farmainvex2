@@ -19,6 +19,7 @@ const schema = z.object({
   destino: z.string().trim().max(120).optional(),
   documentoRef: z.string().trim().max(60).optional(),
   recibidoPor: z.string().trim().max(120).optional(),
+  proveedorId: z.string().optional(),
   fecha: z.string().optional(), // yyyy-mm-dd; vacío = ahora
 });
 
@@ -49,6 +50,7 @@ export async function registrarMovimiento(
     destino: (formData.get("destino") as string) || undefined,
     documentoRef: (formData.get("documentoRef") as string) || undefined,
     recibidoPor: (formData.get("recibidoPor") as string) || undefined,
+    proveedorId: (formData.get("proveedorId") as string) || undefined,
     fecha: (formData.get("fecha") as string) || undefined,
   });
 
@@ -58,7 +60,8 @@ export async function registrarMovimiento(
     return { fieldErrors };
   }
 
-  const { loteId, tipo, cantidad, motivo, destino, documentoRef, recibidoPor, fecha } = parsed.data;
+  const { loteId, tipo, cantidad, motivo, destino, documentoRef, recibidoPor, proveedorId, fecha } =
+    parsed.data;
 
   const lote = await prisma.lote.findUnique({ where: { id: loteId } });
   if (!lote) return { error: "El lote no existe." };
@@ -80,6 +83,7 @@ export async function registrarMovimiento(
         destino: destino || null,
         documentoRef: documentoRef || null,
         recibidoPor: recibidoPor || null,
+        proveedorId: tipo === "ENTRADA" ? (proveedorId || null) : null,
         usuarioId: session.user.id,
         ...(fechaMovimiento ? { fecha: fechaMovimiento } : {}),
       },
