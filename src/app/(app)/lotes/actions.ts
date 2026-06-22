@@ -16,6 +16,7 @@ const schema = z.object({
   costoUnitario: z.coerce.number().min(0, "Costo inválido").default(0),
   establecimientoId: z.string().optional(),
   observado: z.boolean().optional(),
+  proveedorId: z.string().optional(),
 });
 
 export interface EstadoForm {
@@ -43,6 +44,7 @@ export async function guardarLote(_prev: EstadoForm, formData: FormData): Promis
     costoUnitario: formData.get("costoUnitario"),
     establecimientoId: (formData.get("establecimientoId") as string) || undefined,
     observado: formData.get("observado") === "on",
+    proveedorId: (formData.get("proveedorId") as string) || undefined,
   });
 
   if (!parsed.success) {
@@ -87,6 +89,7 @@ export async function guardarLote(_prev: EstadoForm, formData: FormData): Promis
           tipo: "ENTRADA",
           cantidad: data.cantidad,
           motivo: "Registro de lote en almacén",
+          proveedorId: data.proveedorId || null,
           usuarioId: session.user.id,
         },
       });

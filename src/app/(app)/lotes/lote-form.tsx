@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import Link from "next/link";
 import { Save } from "lucide-react";
 import { guardarLote, type EstadoForm } from "./actions";
@@ -8,10 +8,14 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
+import { EntidadSelector } from "@/components/documento/entidad-selector";
+import { buscarDocumentoProveedor, crearProveedor } from "@/app/(app)/proveedores/actions";
+import type { EntidadLite } from "@/lib/documento-entidad";
 
 interface LoteFormProps {
   medicamentos: { id: string; nombreComercial: string; codigo: string }[];
   establecimientos: { id: string; nombre: string }[];
+  proveedores: EntidadLite[];
   lote?: {
     id: string;
     medicamentoId: string;
@@ -27,13 +31,15 @@ interface LoteFormProps {
 
 const inicial: EstadoForm = {};
 
-export function LoteForm({ medicamentos, establecimientos, lote }: LoteFormProps) {
+export function LoteForm({ medicamentos, establecimientos, proveedores, lote }: LoteFormProps) {
   const [estado, action, pendiente] = useActionState(guardarLote, inicial);
+  const [proveedorId, setProveedorId] = useState("");
   const err = estado.fieldErrors ?? {};
 
   return (
     <form action={action} className="space-y-4">
       {lote && <input type="hidden" name="id" value={lote.id} />}
+      <input type="hidden" name="proveedorId" value={proveedorId} />
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Campo etiqueta="Medicamento *" error={err.medicamentoId}>
@@ -85,6 +91,19 @@ export function LoteForm({ medicamentos, establecimientos, lote }: LoteFormProps
             ))}
           </Select>
         </Campo>
+
+        {!lote && (
+          <Campo etiqueta="Proveedor (entrada)" error={err.proveedorId}>
+            <EntidadSelector
+              entidades={proveedores}
+              value={proveedorId}
+              onSelect={setProveedorId}
+              acciones={{ buscar: buscarDocumentoProveedor, crear: crearProveedor }}
+              noun="proveedor"
+              nounCapital="Proveedor"
+            />
+          </Campo>
+        )}
       </div>
 
       <label className="flex items-center gap-2 text-sm">

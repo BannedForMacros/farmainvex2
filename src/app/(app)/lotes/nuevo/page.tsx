@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { proveedoresParaSelector } from "@/services/proveedor.service";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { LoteForm } from "../lote-form";
@@ -9,7 +10,7 @@ import { LoteForm } from "../lote-form";
 export const metadata: Metadata = { title: "Nuevo lote" };
 
 export default async function NuevoLotePage() {
-  const [medicamentos, establecimientos] = await Promise.all([
+  const [medicamentos, establecimientos, proveedores] = await Promise.all([
     prisma.medicamento.findMany({
       select: { id: true, nombreComercial: true, codigo: true },
       orderBy: { nombreComercial: "asc" },
@@ -18,6 +19,7 @@ export default async function NuevoLotePage() {
       select: { id: true, nombre: true },
       orderBy: { nombre: "asc" },
     }),
+    proveedoresParaSelector(),
   ]);
 
   return (
@@ -52,7 +54,11 @@ export default async function NuevoLotePage() {
             <CardTitle>Datos del lote</CardTitle>
           </CardHeader>
           <CardContent>
-            <LoteForm medicamentos={medicamentos} establecimientos={establecimientos} />
+            <LoteForm
+              medicamentos={medicamentos}
+              establecimientos={establecimientos}
+              proveedores={proveedores}
+            />
           </CardContent>
         </Card>
       )}

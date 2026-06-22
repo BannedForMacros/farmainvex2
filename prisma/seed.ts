@@ -24,6 +24,7 @@ async function main() {
   await prisma.incidencia.deleteMany();
   await prisma.movimientoFarmaceutico.deleteMany();
   await prisma.cliente.deleteMany();
+  await prisma.proveedor.deleteMany();
   await prisma.lote.deleteMany();
   await prisma.medicamento.deleteMany();
   await prisma.usuario.deleteMany();
@@ -75,6 +76,15 @@ async function main() {
   const clientes = await Promise.all(
     CLIENTES.map((c) => prisma.cliente.create({ data: c as never })),
   );
+
+  // Proveedores (datos de ejemplo de la API Decolecta / documentos públicos)
+  const PROVEEDORES = [
+    { tipoDocumento: "RUC", numeroDocumento: "20100070970", nombre: "DISTRIBUIDORA FARMA S.A.", direccion: "AV. INDUSTRIAL 1000, LIMA", estado: "ACTIVO", condicion: "HABIDO", distrito: "LIMA", provincia: "LIMA", departamento: "LIMA", origenDatos: "API" },
+    { tipoDocumento: "RUC", numeroDocumento: "20512345678", nombre: "LABORATORIOS MEDIFARMA S.A.", direccion: "AV. LOS FRUTALES 200, ATE", estado: "ACTIVO", condicion: "HABIDO", distrito: "ATE", provincia: "LIMA", departamento: "LIMA", origenDatos: "API" },
+    { tipoDocumento: "RUC", numeroDocumento: "20603129456", nombre: "DROGUERIA ANDINA E.I.R.L.", direccion: "JR. COMERCIO 450, AREQUIPA", estado: "ACTIVO", condicion: "HABIDO", distrito: "AREQUIPA", provincia: "AREQUIPA", departamento: "AREQUIPA", origenDatos: "API" },
+    { tipoDocumento: "RUC", numeroDocumento: "20481122334", nombre: "IMPORTACIONES SALUD PERU S.A.C.", origenDatos: "MANUAL" },
+  ];
+  const proveedores = await Promise.all(PROVEEDORES.map((p) => prisma.proveedor.create({ data: p as never })));
 
   // Medicamentos
   const MEDS = [
@@ -153,6 +163,7 @@ async function main() {
           cantidad: cantidadInicial,
           motivo: "Compra / reposición",
           documentoRef: `GR-${entradaDoc++}`,
+          proveedorId: proveedores[i % proveedores.length].id,
           usuarioId: operador?.id,
           fecha: enDias(-(150 - ((i * 7 + j * 11) % 140))),
         },
@@ -248,7 +259,7 @@ async function main() {
     prisma.incidencia.count(),
   ]);
   const ventas = await prisma.movimientoFarmaceutico.count({ where: { tipo: "VENTA" } });
-  console.log(`✅ Listo: ${meds.length} medicamentos · ${totales[0]} lotes · ${totales[1]} movimientos (${ventas} ventas) · ${clientes.length} clientes · ${totales[2]} alertas · ${totales[3]} incidencias`);
+  console.log(`✅ Listo: ${meds.length} medicamentos · ${totales[0]} lotes · ${totales[1]} movimientos (${ventas} ventas) · ${clientes.length} clientes · ${proveedores.length} proveedores · ${totales[2]} alertas · ${totales[3]} incidencias`);
   console.log("   Usuarios demo (contraseña: farmainvex123): admin@farmainvex.pe · supervisor@farmainvex.pe · farmaceutico@farmainvex.pe · operador@farmainvex.pe");
 }
 

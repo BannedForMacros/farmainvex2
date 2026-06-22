@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { proveedoresParaSelector } from "@/services/proveedor.service";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoteForm } from "../../lote-form";
 
@@ -16,7 +17,7 @@ function aInputDate(fecha: Date): string {
 export default async function EditarLotePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
-  const [lote, medicamentos, establecimientos] = await Promise.all([
+  const [lote, medicamentos, establecimientos, proveedores] = await Promise.all([
     prisma.lote.findUnique({ where: { id } }),
     prisma.medicamento.findMany({
       select: { id: true, nombreComercial: true, codigo: true },
@@ -26,6 +27,7 @@ export default async function EditarLotePage({ params }: { params: Promise<{ id:
       select: { id: true, nombre: true },
       orderBy: { nombre: "asc" },
     }),
+    proveedoresParaSelector(),
   ]);
 
   if (!lote) notFound();

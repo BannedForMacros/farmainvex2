@@ -66,6 +66,8 @@ export type TipoReporte =
   | "inventario"
   | "ventas"
   | "clientes"
+  | "compras"
+  | "proveedores"
   | "incidencias";
 
 export const REPORTES: { tipo: TipoReporte; titulo: string; descripcion: string }[] = [
@@ -78,6 +80,8 @@ export const REPORTES: { tipo: TipoReporte; titulo: string; descripcion: string 
   { tipo: "inventario", titulo: "Inventario valorizado", descripcion: "Valor del stock por lote (cantidad × costo unitario)." },
   { tipo: "ventas", titulo: "Ventas", descripcion: "Movimientos de venta con su cliente y documento." },
   { tipo: "clientes", titulo: "Clientes", descripcion: "Clientes registrados y su verificación." },
+  { tipo: "compras", titulo: "Compras (entradas)", descripcion: "Entradas de stock con su proveedor y documento." },
+  { tipo: "proveedores", titulo: "Proveedores", descripcion: "Proveedores registrados y su verificación." },
   { tipo: "incidencias", titulo: "Incidencias", descripcion: "Incidencias sanitarias y su estado." },
 ];
 
@@ -490,6 +494,60 @@ async function construirDatos(
       };
     }
 
+    case "compras": {
+      const datos = await prisma.movimientoFarmaceutico.findMany({
+        where: { tipo: "ENTRADA", fecha },
+        include: { lote: { include: { medicamento: true } }, proveedor: true },
+        orderBy: { fecha: "desc" },
+      });
+      return {
+        tipo,
+        titulo: "Compras (entradas)",
+        columnas: [
+          { header: "Fecha", key: "fecha", width: 18 },
+          { header: "Proveedor", key: "proveedor", width: 28 },
+          { header: "Documento proveedor", key: "doc", width: 18 },
+          { header: "Medicamento", key: "medicamento", width: 26 },
+          { header: "Lote", key: "lote", width: 14 },
+          { header: "Cantidad", key: "cantidad", width: 10 },
+          { header: "Documento", key: "documento", width: 18 },
+        ],
+        filas: datos.map((m) => ({
+          fecha: fechaHora(m.fecha),
+          proveedor: m.proveedor?.nombre ?? "—",
+          doc: m.proveedor ? `${m.proveedor.tipoDocumento} ${m.proveedor.numeroDocumento}` : "—",
+          medicamento: m.lote.medicamento.nombreComercial,
+          lote: m.lote.codigo,
+          cantidad: m.cantidad,
+          documento: m.documentoRef ?? "—",
+        })),
+      };
+    }
+
+    case "proveedores": {
+      const datos = await prisma.proveedor.findMany({ orderBy: { nombre: "asc" } });
+      return {
+        tipo,
+        titulo: "Proveedores",
+        columnas: [
+          { header: "Tipo", key: "tipoDoc", width: 10 },
+          { header: "Documento", key: "documento", width: 16 },
+          { header: "Nombre / Razón social", key: "nombre", width: 32 },
+          { header: "Dirección", key: "direccion", width: 32 },
+          { header: "Origen", key: "origen", width: 12 },
+          { header: "Estado", key: "estadoProv", width: 12 },
+        ],
+        filas: datos.map((p) => ({
+          tipoDoc: ETIQUETA_TIPO_DOCUMENTO[p.tipoDocumento],
+          documento: p.numeroDocumento,
+          nombre: p.nombre,
+          direccion: p.direccion ?? "—",
+          origen: p.origenDatos === "API" ? "Verificado" : "Manual",
+          estadoProv: p.activo ? "Activo" : "Inactivo",
+        })),
+      };
+    }
+
     case "incidencias": {
       const datos = await prisma.incidencia.findMany({
         where: { creadoEn: fecha },
@@ -643,6 +701,32 @@ export async function obtenerGraficoReporte(
       return {
         tipo: "pie",
         titulo: "Clientes por tipo de documento",
+        series: g.map((x) => ({ nombre: ETIQUETA_TIPO_DOCUMENTO[x.tipoDocumento], valor: x._count._all })),
+      };
+    }
+
+    case "compras": {
+      const compras = await prisma.movimientoFarmaceutico.findMany({
+        where: { tipo: "ENTRADA", fecha },
+        include: { lote: { include: { medicamento: true } } },
+      });
+      const porMed = new Map<string, number>();
+      for (const c of compras) {
+        const nombre = c.lote.medicamento.nombreComercial;
+        porMed.set(nombre, (porMed.get(nombre) ?? 0) + c.cantidad);
+      }
+      return {
+        tipo: "bar",
+        titulo: "Unidades compradas por medicamento",
+        series: ordenar([...porMed.entries()].map(([nombre, valor]) => ({ nombre, valor }))).slice(0, 8),
+      };
+    }
+
+    case "proveedores": {
+      const g = await prisma.proveedor.groupBy({ by: ["tipoDocumento"], _count: { _all: true } });
+      return {
+        tipo: "pie",
+        titulo: "Proveedores por tipo de documento",
         series: g.map((x) => ({ nombre: ETIQUETA_TIPO_DOCUMENTO[x.tipoDocumento], valor: x._count._all })),
       };
     }
