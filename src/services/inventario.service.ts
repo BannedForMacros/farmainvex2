@@ -168,6 +168,37 @@ export async function salidasRecientes(limite = 40) {
   });
 }
 
+/** Últimas entradas (compras) con su proveedor. */
+export async function entradasRecientes(limite = 40) {
+  return prisma.movimientoFarmaceutico.findMany({
+    where: { tipo: "ENTRADA" },
+    include: { lote: { include: { medicamento: true } }, proveedor: true, usuario: true },
+    orderBy: { fecha: "desc" },
+    take: limite,
+  });
+}
+
+/** Indicadores para la cabecera de la página de compras/entradas. */
+export async function resumenCompras(): Promise<{
+  totalEntradas: number;
+  unidadesIngresadas: number;
+  proveedoresActivos: number;
+}> {
+  const [agg, proveedoresActivos] = await Promise.all([
+    prisma.movimientoFarmaceutico.aggregate({
+      where: { tipo: "ENTRADA" },
+      _count: { _all: true },
+      _sum: { cantidad: true },
+    }),
+    prisma.proveedor.count({ where: { activo: true } }),
+  ]);
+  return {
+    totalEntradas: agg._count._all,
+    unidadesIngresadas: agg._sum.cantidad ?? 0,
+    proveedoresActivos,
+  };
+}
+
 /** Indicadores para la cabecera de la página de salidas. */
 export async function resumenSalidas(): Promise<{
   totalSalidas: number;
