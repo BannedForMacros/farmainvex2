@@ -77,17 +77,25 @@ export async function crearProveedor(input: {
     data = { tipoDocumento: tipo, numeroDocumento: numero, nombre, origenDatos: "MANUAL" };
   }
 
-  const proveedor = await prisma.proveedor.create({ data });
-  revalidatePath("/proveedores");
-  return {
-    ok: true,
-    entidad: {
-      id: proveedor.id,
-      tipoDocumento: proveedor.tipoDocumento as "RUC" | "DNI",
-      numeroDocumento: proveedor.numeroDocumento,
-      nombre: proveedor.nombre,
-    },
-  };
+  try {
+    const proveedor = await prisma.proveedor.create({ data });
+    revalidatePath("/proveedores");
+    return {
+      ok: true,
+      entidad: {
+        id: proveedor.id,
+        tipoDocumento: proveedor.tipoDocumento as "RUC" | "DNI",
+        numeroDocumento: proveedor.numeroDocumento,
+        nombre: proveedor.nombre,
+      },
+    };
+  } catch (e) {
+    // Carrera: dos altas simultáneas del mismo documento (unique numeroDocumento).
+    if ((e as { code?: string })?.code === "P2002") {
+      return { ok: false, error: `El ${tipo} ${numero} ya está registrado.` };
+    }
+    throw e;
+  }
 }
 
 export async function editarProveedor(

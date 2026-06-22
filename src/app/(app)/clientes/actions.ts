@@ -98,17 +98,25 @@ export async function crearCliente(input: {
     data = { tipoDocumento: tipo, numeroDocumento: numero, nombre, origenDatos: "MANUAL" };
   }
 
-  const cliente = await prisma.cliente.create({ data });
-  revalidatePath("/clientes");
-  return {
-    ok: true,
-    cliente: {
-      id: cliente.id,
-      tipoDocumento: cliente.tipoDocumento as "RUC" | "DNI",
-      numeroDocumento: cliente.numeroDocumento,
-      nombre: cliente.nombre,
-    },
-  };
+  try {
+    const cliente = await prisma.cliente.create({ data });
+    revalidatePath("/clientes");
+    return {
+      ok: true,
+      cliente: {
+        id: cliente.id,
+        tipoDocumento: cliente.tipoDocumento as "RUC" | "DNI",
+        numeroDocumento: cliente.numeroDocumento,
+        nombre: cliente.nombre,
+      },
+    };
+  } catch (e) {
+    // Carrera: dos altas simultáneas del mismo documento (unique numeroDocumento).
+    if ((e as { code?: string })?.code === "P2002") {
+      return { ok: false, error: `El ${tipo} ${numero} ya está registrado.` };
+    }
+    throw e;
+  }
 }
 
 /** Edición limitada: el nombre solo es editable en clientes MANUAL; siempre el estado activo. */
