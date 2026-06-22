@@ -57,6 +57,7 @@ function rangoFecha(filtro: FiltroReporte): { gte?: Date; lte?: Date } | undefin
 }
 
 export type TipoReporte =
+  | "kardex"
   | "medicamentos"
   | "lotes"
   | "proximos"
@@ -68,6 +69,7 @@ export type TipoReporte =
   | "incidencias";
 
 export const REPORTES: { tipo: TipoReporte; titulo: string; descripcion: string }[] = [
+  { tipo: "kardex", titulo: "Kardex de inventario", descripcion: "Stock inicial, entradas, salidas y stock final por producto en el rango de fechas." },
   { tipo: "medicamentos", titulo: "Medicamentos registrados", descripcion: "Catálogo completo de productos farmacéuticos." },
   { tipo: "lotes", titulo: "Control de lotes", descripcion: "Todos los lotes con su estado y vencimiento." },
   { tipo: "proximos", titulo: "Próximos a vencer", descripcion: "Lotes en alerta preventiva o crítica." },
@@ -78,6 +80,133 @@ export const REPORTES: { tipo: TipoReporte; titulo: string; descripcion: string 
   { tipo: "clientes", titulo: "Clientes", descripcion: "Clientes registrados y su verificación." },
   { tipo: "incidencias", titulo: "Incidencias", descripcion: "Incidencias sanitarias y su estado." },
 ];
+
+// ----- Kardex: stock inicial / entradas / salidas / stock final por producto -----
+
+const TIPOS_ENTRADA = new Set(["ENTRADA"]);
+
+export interface KardexLote {
+  codigo: string;
+  vence: string;
+  stockInicial: number;
+  entradas: number;
+  salidas: number;
+  stockFinal: number;
+}
+
+export interface KardexMovimiento {
+  fecha: string;
+  tipo: string;
+  lote: string;
+  entrada: number; // 0 si es salida
+  salida: number; // 0 si es entrada
+  documento: string;
+}
+
+export interface KardexProducto {
+  medicamentoId: string;
+  medicamento: string;
+  stockInicial: number;
+  entradas: number;
+  salidas: number;
+  stockFinal: number;
+  lotes: KardexLote[];
+  movimientos: KardexMovimiento[];
+}
+
+/**
+ * Calcula el Kardex por producto en el rango [desde, hasta].
+ *   stock final  = stock actual − (movimientos posteriores a `hasta`)
+ *   stock inicial = stock final − entradas + salidas (dentro del rango)
+ * Trabaja sobre el stock real y los movimientos, agrupando por medicamento.
+ */
+export async function obtenerKardex(filtro: FiltroReporte = {}): Promise<KardexProducto[]> {
+  const desde = filtro.desde;
+  const hasta = filtro.hasta
+    ? (() => {
+        const f = new Date(filtro.hasta!);
+        f.setHours(23, 59, 59, 999);
+        return f;
+      })()
+    : undefined;
+
+  const enRango = (f: Date) => (!desde || f >= desde) && (!hasta || f <= hasta);
+  const posterior = (f: Date) => (hasta ? f > hasta : false);
+
+  const lotes = await prisma.lote.findMany({
+    where: { estado: { not: "RETIRADO" } },
+    include: { medicamento: true, movimientos: { orderBy: { fecha: "asc" } } },
+    orderBy: { fechaVencimiento: "asc" },
+  });
+
+  const grupos = new Map<string, KardexProducto>();
+
+  for (const lote of lotes) {
+    let entradas = 0;
+    let salidas = 0;
+    let netoPosterior = 0;
+    const movs: KardexMovimiento[] = [];
+
+    for (const m of lote.movimientos) {
+      const esEntrada = TIPOS_ENTRADA.has(m.tipo);
+      if (posterior(m.fecha)) {
+        netoPosterior += esEntrada ? m.cantidad : -m.cantidad;
+      }
+      if (enRango(m.fecha)) {
+        if (esEntrada) entradas += m.cantidad;
+        else salidas += m.cantidad;
+        movs.push({
+          fecha: fechaHora(m.fecha),
+          tipo: ETIQUETA_TIPO_MOVIMIENTO[m.tipo],
+          lote: lote.codigo,
+          entrada: esEntrada ? m.cantidad : 0,
+          salida: esEntrada ? 0 : m.cantidad,
+          documento: m.documentoRef ?? "—",
+        });
+      }
+    }
+
+    const stockFinal = lote.cantidad - netoPosterior;
+    const stockInicial = stockFinal - entradas + salidas;
+
+    const loteKardex: KardexLote = {
+      codigo: lote.codigo,
+      vence: fechaCorta(lote.fechaVencimiento),
+      stockInicial,
+      entradas,
+      salidas,
+      stockFinal,
+    };
+
+    let g = grupos.get(lote.medicamentoId);
+    if (!g) {
+      g = {
+        medicamentoId: lote.medicamentoId,
+        medicamento: lote.medicamento.nombreComercial,
+        stockInicial: 0,
+        entradas: 0,
+        salidas: 0,
+        stockFinal: 0,
+        lotes: [],
+        movimientos: [],
+      };
+      grupos.set(lote.medicamentoId, g);
+    }
+    g.stockInicial += stockInicial;
+    g.entradas += entradas;
+    g.salidas += salidas;
+    g.stockFinal += stockFinal;
+    g.lotes.push(loteKardex);
+    g.movimientos.push(...movs);
+  }
+
+  const resultado = [...grupos.values()];
+  for (const g of resultado) {
+    g.movimientos.sort((a, b) => (a.fecha < b.fecha ? -1 : 1));
+  }
+  resultado.sort((a, b) => a.medicamento.localeCompare(b.medicamento));
+  return resultado;
+}
 
 export interface DatosReporte {
   tipo: TipoReporte;
@@ -108,15 +237,38 @@ export async function obtenerDatosReporte(
   tipo: TipoReporte,
   filtro: FiltroReporte = {},
 ): Promise<DatosReporte> {
-  const base = await construirDatos(tipo, rangoFecha(filtro));
+  const base = await construirDatos(tipo, rangoFecha(filtro), filtro);
   return { ...base, periodo: describirPeriodo(filtro) };
 }
 
 async function construirDatos(
   tipo: TipoReporte,
   fecha: ReturnType<typeof rangoFecha>,
+  filtro: FiltroReporte,
 ): Promise<Omit<DatosReporte, "periodo">> {
   switch (tipo) {
+    case "kardex": {
+      const kardex = await obtenerKardex(filtro);
+      return {
+        tipo,
+        titulo: "Kardex de inventario",
+        columnas: [
+          { header: "Medicamento", key: "medicamento", width: 32 },
+          { header: "Stock inicial", key: "inicial", width: 14 },
+          { header: "Entradas", key: "entradas", width: 12 },
+          { header: "Salidas", key: "salidas", width: 12 },
+          { header: "Stock final", key: "final", width: 14 },
+        ],
+        filas: kardex.map((k) => ({
+          medicamento: k.medicamento,
+          inicial: k.stockInicial,
+          entradas: k.entradas,
+          salidas: k.salidas,
+          final: k.stockFinal,
+        })),
+      };
+    }
+
     case "medicamentos": {
       const datos = await prisma.medicamento.findMany({
         where: { creadoEn: fecha },
@@ -380,6 +532,15 @@ export async function obtenerGraficoReporte(
   const ordenar = (s: SerieGrafico[]) => s.sort((a, b) => b.valor - a.valor);
 
   switch (tipo) {
+    case "kardex": {
+      const kardex = await obtenerKardex(filtro);
+      return {
+        tipo: "bar",
+        titulo: "Stock final por medicamento",
+        series: ordenar(kardex.map((k) => ({ nombre: k.medicamento, valor: k.stockFinal }))).slice(0, 8),
+      };
+    }
+
     case "medicamentos": {
       const g = await prisma.medicamento.groupBy({
         by: ["laboratorio"],

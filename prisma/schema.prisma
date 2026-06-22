@@ -165,6 +165,8 @@ model MovimientoFarmaceutico {
   recibidoPor  String? // responsable que recibe en el destino (cadena de custodia)
   cliente   Cliente?       @relation(fields: [clienteId], references: [id], onDelete: SetNull) // solo en VENTA
   clienteId String?
+  proveedor   Proveedor?   @relation(fields: [proveedorId], references: [id], onDelete: SetNull) // solo en ENTRADA
+  proveedorId String?
   usuario   Usuario?       @relation(fields: [usuarioId], references: [id])
   usuarioId String?
   fecha     DateTime       @default(now()) // fecha real del movimiento (editable al registrar)
@@ -218,6 +220,26 @@ model Cliente {
   direccion       String?
   estado          String? // ACTIVO (RUC)
   condicion       String? // HABIDO (RUC)
+  distrito        String?
+  provincia       String?
+  departamento    String?
+  origenDatos     OrigenDatos   @default(MANUAL)
+  activo          Boolean       @default(true)
+  creadoEn        DateTime      @default(now())
+  movimientos     MovimientoFarmaceutico[]
+
+  @@index([nombre])
+}
+
+// Proveedor de entradas/compras. Mismo patrón que Cliente: datos API no editables.
+model Proveedor {
+  id              String        @id @default(cuid())
+  tipoDocumento   TipoDocumento
+  numeroDocumento String        @unique
+  nombre          String
+  direccion       String?
+  estado          String?
+  condicion       String?
   distrito        String?
   provincia       String?
   departamento    String?

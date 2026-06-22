@@ -7,10 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { buttonVariants } from "@/components/ui/button";
 import { GraficoReporteVista } from "@/components/reportes/grafico-reporte";
+import { KardexTabla } from "@/components/reportes/kardex-tabla";
 import {
   REPORTES,
   obtenerDatosReporte,
   obtenerGraficoReporte,
+  obtenerKardex,
   esTipoReporteValido,
   parseFecha,
 } from "@/services/reportes.service";
@@ -34,10 +36,13 @@ export default async function ReporteDetallePage({ params, searchParams }: Props
   const info = REPORTES.find((r) => r.tipo === tipo)!;
   const filtro = { desde: parseFecha(desde), hasta: parseFecha(hasta) };
 
-  const [datos, grafico] = await Promise.all([
+  const esKardex = tipo === "kardex";
+  const [datos, grafico, kardex] = await Promise.all([
     obtenerDatosReporte(tipo, filtro),
     obtenerGraficoReporte(tipo, filtro),
+    esKardex ? obtenerKardex(filtro) : Promise.resolve([]),
   ]);
+  const totalRegistros = esKardex ? kardex.length : datos.filas.length;
 
   // Query string para las descargas (conserva el filtro de fechas).
   const qs = new URLSearchParams({ tipo });
@@ -118,10 +123,12 @@ export default async function ReporteDetallePage({ params, searchParams }: Props
               <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-fx-blue">
                 <CalendarRange className="size-3.5" /> {datos.periodo}
               </span>
-              <span className="text-sm text-muted-foreground">{datos.filas.length} registro(s)</span>
+              <span className="text-sm text-muted-foreground">{totalRegistros} registro(s)</span>
             </div>
           </div>
-          {datos.filas.length === 0 ? (
+          {esKardex ? (
+            <KardexTabla kardex={kardex} />
+          ) : datos.filas.length === 0 ? (
             <p className="px-5 py-10 text-center text-sm text-muted-foreground">
               No hay registros para los criterios seleccionados.
             </p>
